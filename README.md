@@ -42,9 +42,10 @@ Basic Steps
 
 Blog
 ----
-Coming soon...
+[How to Use SWIG to Link Windows DLL with Golang][5]
 
 [1]:http://sourceforge.net/projects/mingw-w64/
 [2]:http://www.swig.org/download.html
 [3]:https://golang.org/
 [4]:http://www.dynamsoft.com/Downloads/Dynamic-Barcode-Reader-Download.aspx
+[5]:http://www.codepool.biz/swig-link-windows-dll-golang.html
