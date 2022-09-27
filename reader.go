@@ -12,16 +12,16 @@ import (
 )
 
 type Barcode struct {
-	text   string
-	format string
-	x1     int
-	y1     int
-	x2     int
-	y2     int
-	x3     int
-	y3     int
-	x4     int
-	y4     int
+	Text   string
+	Format string
+	X1     int
+	Y1     int
+	X2     int
+	Y2     int
+	X3     int
+	Y3     int
+	X4     int
+	Y4     int
 }
 
 func InitLicense(license string) (int, string) {
@@ -56,13 +56,13 @@ func (reader *BarcodeReader) SetParameters(params string) int {
 	return int(ret)
 }
 
-func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
+func (reader *BarcodeReader) DecodeFile(filePath string) (int, []*Barcode) {
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
 	template := C.CString("")
 	defer C.free(unsafe.Pointer(template))
 
-	var barcodes = []Barcode{}
+	var barcodes = []*Barcode{}
 	ret := C.DBR_DecodeFile(reader.handler, c_filePath, template)
 
 	if ret != 0 {
@@ -74,24 +74,24 @@ func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 
 	if resultArray.resultsCount > 0 {
 		for i := 0; i < int(resultArray.resultsCount); i++ {
-			barcode := Barcode{}
+			barcode := &Barcode{}
 			result := C.getTextResultPointer(resultArray, C.int(i))
 
 			format := C.getFormatString(result)
-			barcode.format = C.GoString(format)
+			barcode.Format = C.GoString(format)
 
 			text := C.getText(result)
-			barcode.text = C.GoString(text)
+			barcode.Text = C.GoString(text)
 
 			localization := C.getLocalizationPointer(result)
-			barcode.x1 = int(localization.x1)
-			barcode.y1 = int(localization.y1)
-			barcode.x2 = int(localization.x2)
-			barcode.y2 = int(localization.y2)
-			barcode.x3 = int(localization.x3)
-			barcode.y3 = int(localization.y3)
-			barcode.x4 = int(localization.x4)
-			barcode.y4 = int(localization.y4)
+			barcode.X1 = int(localization.x1)
+			barcode.Y1 = int(localization.y1)
+			barcode.X2 = int(localization.x2)
+			barcode.Y2 = int(localization.y2)
+			barcode.X3 = int(localization.x3)
+			barcode.Y3 = int(localization.y3)
+			barcode.X4 = int(localization.x4)
+			barcode.Y4 = int(localization.y4)
 
 			barcodes = append(barcodes, barcode)
 		}

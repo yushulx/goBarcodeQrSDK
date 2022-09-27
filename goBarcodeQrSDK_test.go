@@ -59,13 +59,13 @@ func TestApp(t *testing.T) {
 	}
 
 	for _, barcode := range barcodes {
-		fmt.Println(barcode.text)
-		fmt.Println(barcode.format)
-		fmt.Println(barcode.x1)
-		fmt.Println(barcode.y1)
-		fmt.Println(barcode.x2)
-		fmt.Println(barcode.y2)
-		fmt.Println(barcode.x3)
-		fmt.Println(barcode.y3)
+		fmt.Println(barcode.Text)
+		fmt.Println(barcode.Format)
+		fmt.Println(barcode.X1)
+		fmt.Println(barcode.Y1)
+		fmt.Println(barcode.X2)
+		fmt.Println(barcode.Y2)
+		fmt.Println(barcode.X3)
+		fmt.Println(barcode.Y3)
 	}
 }
