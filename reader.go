@@ -56,13 +56,13 @@ func (reader *BarcodeReader) SetParameters(params string) int {
 	return int(ret)
 }
 
-func (reader *BarcodeReader) DecodeFile(filePath string) (int, []*Barcode) {
+func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
 	template := C.CString("")
 	defer C.free(unsafe.Pointer(template))
 
-	var barcodes = []*Barcode{}
+	var barcodes = []Barcode{}
 	ret := C.DBR_DecodeFile(reader.handler, c_filePath, template)
 
 	if ret != 0 {
@@ -74,7 +74,7 @@ func (reader *BarcodeReader) DecodeFile(filePath string) (int, []*Barcode) {
 
 	if resultArray.resultsCount > 0 {
 		for i := 0; i < int(resultArray.resultsCount); i++ {
-			barcode := &Barcode{}
+			barcode := Barcode{}
 			result := C.getTextResultPointer(resultArray, C.int(i))
 
 			format := C.getFormatString(result)
