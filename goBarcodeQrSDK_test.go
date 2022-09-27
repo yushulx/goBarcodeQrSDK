@@ -67,5 +67,7 @@ func TestApp(t *testing.T) {
 		fmt.Println(barcode.Y2)
 		fmt.Println(barcode.X3)
 		fmt.Println(barcode.Y3)
+		fmt.Println(barcode.X4)
+		fmt.Println(barcode.Y4)
 	}
 }
