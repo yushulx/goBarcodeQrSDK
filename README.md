@@ -77,5 +77,5 @@ go run .
 - Read barcode and QR code from an image located in the local file system:
 
     ```bash
-    docker run -it --rm -v <image-folder>:/app golang-barcode-qr-reader reader /app/<image-file>
+    docker run -it --rm -v <image-folder>:/app golang-barcode-qr-reader reader /app/<image-file> <license-key>
     ```
