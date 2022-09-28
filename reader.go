@@ -7,7 +7,7 @@ import (
 	// #include <lib/DynamsoftBarcodeReader.h>
 	// #include <lib/DynamsoftCommon.h>
 	// #include <lib/bridge.c>
-	// #cgo LDFLAGS: -L ./lib -lDynamsoftBarcodeReader -Wl,-rpath=./lib
+	// #cgo LDFLAGS: -L ./lib -lDynamsoftBarcodeReader -Wl,-rpath=$ORIGIN
 	"C"
 )
 
