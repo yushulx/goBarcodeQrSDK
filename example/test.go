@@ -11,7 +11,7 @@ func main() {
 	// Get a greeting message and print it.
 	ret, _ := goBarcodeQrSDK.InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
 	if ret != 0 {
-		fmt.Println(`initLicense("") = %d`, ret)
+		fmt.Printf(`initLicense("") = %d`, ret)
 	}
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
 	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
@@ -21,7 +21,7 @@ func main() {
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
 	if code != 0 {
-		fmt.Println(`DecodeFile() = %d`, code)
+		fmt.Printf(`DecodeFile() = %d`, code)
 	}
 
 	for i := 0; i < len(barcodes); i++ {
