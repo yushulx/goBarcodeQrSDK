@@ -1,51 +1,69 @@
-# Golang Barcode Reader for Windows
-The sample demonstrates how to create a Golang Barcode Reader by wrapping Dynamsoft Barcode Reader SDK with SWIG on Windows.
+# Golang Barcode QR Code Reader
+The project is a Golang wrapper for [Dynamsoft Barcode Reader C++ SDK](https://www.dynamsoft.com/barcode-reader/sdk-desktop-server/). You can use this module to read barcodes, QR Code (including Micro QR Code), Data Matrix, PDF417 (including Micro PDF417), Aztec Code, MaxiCode (mode 2-5), and DotCode from images and PDF files.
 
-![golang barcode reader](http://www.codepool.biz/wp-content/uploads/2015/11/go_barcode_reader.png)
+## Pre-requisites
+* [Go v1.19](https://go.dev/dl/)
+* [Dynamsoft Barcode Reader v9.4](https://www.dynamsoft.com/barcode-reader/downloads)
 
-Download & Installation
-------------
-* [mingw-w64][1]
-* [SWIG][2]
-* [Go][3]
-* [Dynamsoft Barcode Reader][4]
+   You can get a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
 
-Basic Steps
------------
-1. Set GOPATH as the location of your workspace. E.g. **set GOPATH=f:\go-project**
-2. Create your package path. E.g. ``mkdir %GOPATH%\src\github.com\dynamsoftsamples\go-barcode-reader\dbr``
-3. Copy **DynamsoftBarcodeReaderx64.dll** to **%GOPATH%\src\github.com\dynamsoftsamples\go-barcode-reader\dbr\bin**
-4. Change directory to **%GOPATH%** and compile the package with ``go install github.com\dynamsoftsamples\go-barcode-reader\dbr``. Alternatively, you can change directory to **%GOPATH%\src\github.com\dynamsoftsamples\go-barcode-reader\dbr** and compile the package with ``go install``.
-5. A package **dbr.a** will be generated at **%GOPATH%\pkg\windows_amd64\github.com\dynamsoftsamples\go-barcode-reader**.
-6. Create **%GOPATH%\github.com\dynamsoftsamples\go-barcode-reader\BarcodeReader\BarcodeReader.go** .
+## Test the Module
 
-    ```go
-    package main
+```bash
+go test
+```
 
-    import (
-      "github.com/dynamsoftsamples/go-barcode-reader/dbr"
-      "os"
-    )
+## Parameter Configuration
+[https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html?ver=latest](https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html?ver=latest)
 
-    func main() {
-      if len(os.Args) == 1 { // read the default image
-        dbr.Decode_file("AllSupportedBarcodeTypes.tif")
-      } else {
-        dbr.Decode_file(os.Args[1])
-      }
-    }
+## Example
 
-    ```
-7. Copy **DynamsoftBarcodeReaderx64.dll** to **%GOPATH%\bin**.
-8. Change directory to **%GOPATH%** and run ``go install github.com\dynamsoftsamples\go-barcode-reader\BarcodeReader``.
-9. Read a barcode image with ``%GOPATH%bin\BarcodeReader.exe <barcode image>``
+```go
+package main
 
-Blog
-----
-[How to Use SWIG to Link Windows DLL with Golang][5]
+import (
+	"fmt"
+	"time"
 
-[1]:http://sourceforge.net/projects/mingw-w64/
-[2]:http://www.swig.org/download.html
-[3]:https://golang.org/
-[4]:http://www.dynamsoft.com/Downloads/Dynamic-Barcode-Reader-Download.aspx
-[5]:http://www.codepool.biz/swig-link-windows-dll-golang.html
+	"github.com/yushulx/goBarcodeQrSDK"
+)
+
+func main() {
+	ret, _ := goBarcodeQrSDK.InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+	if ret != 0 {
+		fmt.Printf(`initLicense("") = %d`, ret)
+	}
+	obj := goBarcodeQrSDK.CreateBarcodeReader()
+	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	startTime := time.Now()
+	code, barcodes := obj.DecodeFile("image-file")
+	elapsed := time.Since(startTime)
+	fmt.Println("DecodeFile() time cost: ", elapsed)
+
+	if code != 0 {
+		fmt.Printf(`DecodeFile() = %d`, code)
+	}
+
+	for i := 0; i < len(barcodes); i++ {
+		barcode := barcodes[i]
+		fmt.Println(barcode.Text)
+		fmt.Println(barcode.Format)
+		fmt.Println(barcode.X1)
+		fmt.Println(barcode.Y1)
+		fmt.Println(barcode.X2)
+		fmt.Println(barcode.Y2)
+		fmt.Println(barcode.X3)
+		fmt.Println(barcode.Y3)
+		fmt.Println(barcode.X4)
+		fmt.Println(barcode.Y4)
+	}
+}
+
+```
+
+Set the license key in `InitLicense()` and update the `image-file` to the path of the image file you want to decode. Then run the example.
+
+```bash
+go run .
+```
+
