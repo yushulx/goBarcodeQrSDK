@@ -10,17 +10,21 @@ import (
 
 func main() {
 	filename := "test.png"
-	if len(os.Args) > 1 {
+	license := "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
+	if len(os.Args) > 2 {
 		_, err := os.Stat(os.Args[1])
 		if err == nil {
 			filename = os.Args[1]
 		} else {
 			fmt.Println("Input File not found! Use test.png instead.")
 		}
+
+		license = os.Args[2]
 	} else {
-		fmt.Println("Input File not found! Use test.png instead.")
+		fmt.Println("reader [image] [license]")
+		return
 	}
-	ret, _ := goBarcodeQrSDK.InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+	ret, _ := goBarcodeQrSDK.InitLicense(license)
 	if ret != 0 {
 		fmt.Printf(`initLicense("") = %d`, ret)
 	}
