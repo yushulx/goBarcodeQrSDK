@@ -67,7 +67,7 @@ Set the license key in `InitLicense()` and update the `image-file` to the path o
 go run .
 ```
 
-## Docker 
+## Docker Build
 - Build and run barcode QR code reader in Docker:
 
     ```bash
@@ -77,5 +77,12 @@ go run .
 - Read barcode and QR code from an image located in the local file system:
 
     ```bash
-    docker run -it --rm -v <image-folder>:/app golang-barcode-qr-reader reader /app/<image-file>
+    docker run -it --rm -v <image-folder>:/app golang-barcode-qr-reader reader /app/<image-file> <license-key> <template-file>
     ```
+
+## Docker Usage
+[https://hub.docker.com/repository/docker/yushulx/golang-barcode-qr-reader](https://hub.docker.com/repository/docker/yushulx/golang-barcode-qr-reader)
+
+ ```bash
+docker run -it --rm -v <image-folder>:/app yushulx/golang-barcode-qr-reader reader /app/<image-file> <license-key> <template-file>
+```

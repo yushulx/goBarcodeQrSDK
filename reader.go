@@ -50,10 +50,16 @@ type BarcodeReader struct {
 	handler unsafe.Pointer
 }
 
-func (reader *BarcodeReader) SetParameters(params string) int {
+func (reader *BarcodeReader) SetParameters(params string) (int, string) {
 	errorBuffer := make([]byte, 256)
 	ret := C.DBR_InitRuntimeSettingsWithString(reader.handler, C.CString(params), C.CM_OVERWRITE, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
-	return int(ret)
+	return int(ret), string(errorBuffer)
+}
+
+func (reader *BarcodeReader) LoadTemplateFile(params string) (int, string) {
+	errorBuffer := make([]byte, 256)
+	ret := C.DBR_InitRuntimeSettingsWithFile(reader.handler, C.CString(params), C.CM_OVERWRITE, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
+	return int(ret), string(errorBuffer)
 }
 
 func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {

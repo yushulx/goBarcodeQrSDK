@@ -11,32 +11,52 @@ import (
 func main() {
 	filename := "test.png"
 	license := "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ=="
-	if len(os.Args) > 2 {
-		_, err := os.Stat(os.Args[1])
-		if err == nil {
-			filename = os.Args[1]
-		} else {
-			fmt.Println("Input File not found! Use test.png instead.")
-		}
+	template := "template.json"
+	if len(os.Args) > 1 {
+		for i := 1; i < len(os.Args); i++ {
+			switch i {
+			case 1:
+				_, err := os.Stat(os.Args[1])
+				if err == nil {
+					filename = os.Args[1]
+				} else {
+					fmt.Println("Input File not found! Use test.png instead.")
+				}
+			case 2:
+				license = os.Args[2]
+			case 3:
+				_, err := os.Stat(os.Args[3])
+				if err == nil {
+					template = os.Args[3]
+				} else {
+					fmt.Println("Template File not found! Use template.json instead.")
+				}
+			}
 
-		license = os.Args[2]
+		}
 	} else {
-		fmt.Println("reader [image] [license]")
+		fmt.Println("reader [image] [license] [template]")
 		return
 	}
-	ret, _ := goBarcodeQrSDK.InitLicense(license)
+	ret, errMsg := goBarcodeQrSDK.InitLicense(license)
 	if ret != 0 {
-		fmt.Printf(`initLicense("") = %d`, ret)
+		fmt.Println(`initLicense(): `, ret)
+		fmt.Println(errMsg)
+		return
 	}
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
-	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	ret, errMsg = obj.LoadTemplateFile(template)
+	if ret != 0 {
+		fmt.Println(`LoadTemplateFile(): `, ret)
+		fmt.Println(errMsg)
+	}
 	startTime := time.Now()
-	code, barcodes := obj.DecodeFile(filename)
+	ret, barcodes := obj.DecodeFile(filename)
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
-	if code != 0 {
-		fmt.Printf(`DecodeFile() = %d`, code)
+	if ret != 0 {
+		fmt.Printf(`DecodeFile() = %d`, ret)
 	}
 
 	for i := 0; i < len(barcodes); i++ {

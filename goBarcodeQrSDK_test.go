@@ -27,9 +27,17 @@ func TestDestroyBarcodeReader(t *testing.T) {
 
 func TestSetParameters(t *testing.T) {
 	obj := CreateBarcodeReader()
-	ret := obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	ret, _ := obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
 	if ret != 0 {
 		t.Fatalf(`SetParameters() = %d`, ret)
+	}
+}
+
+func TestLoadTemplateFile(t *testing.T) {
+	obj := CreateBarcodeReader()
+	ret, _ := obj.LoadTemplateFile("template.json")
+	if ret != 0 {
+		t.Fatalf(`LoadTemplateFile() = %d`, ret)
 	}
 }
 
