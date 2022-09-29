@@ -84,5 +84,5 @@ go run .
 [https://hub.docker.com/repository/docker/yushulx/golang-barcode-qr-reader](https://hub.docker.com/repository/docker/yushulx/golang-barcode-qr-reader)
 
  ```bash
-docker run -it --rm -v <image-folder>:/app yushulx/golang-barcode-qr-reader reader /app/<image-file> <license-key> <template-file>
+docker run -it --rm -v <image-folder>:/app yushulx/golang-barcode-qr-reader:latest reader /app/<image-file> <license-key> <template-file>
 ```
