@@ -3,9 +3,7 @@ The project is a Golang wrapper for [Dynamsoft Barcode Reader C++ SDK](https://w
 
 ## Pre-requisites
 * [Go v1.19](https://go.dev/dl/)
-* [Dynamsoft Barcode Reader v9.4](https://www.dynamsoft.com/barcode-reader/downloads)
-
-   You can get a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
+* Dynamsoft Barcode Reader v9.x. You can get a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
 
 ## Test the Module
 
