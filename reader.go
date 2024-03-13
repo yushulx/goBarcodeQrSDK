@@ -3,11 +3,15 @@ package goBarcodeQrSDK
 import (
 	"unsafe"
 
-	// #include <stdlib.h>
-	// #include <lib/DynamsoftBarcodeReader.h>
-	// #include <lib/DynamsoftCommon.h>
-	// #include <lib/bridge.c>
-	// #cgo LDFLAGS: -L ./lib -lDynamsoftBarcodeReader -Wl,-rpath=./lib
+	/*
+	   #cgo CFLAGS: -I${SRCDIR}/lib
+	   #cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lDynamsoftBarcodeReader -Wl,-rpath=\$$ORIGIN
+	   #cgo windows LDFLAGS: -L${SRCDIR}/lib/windows -lDynamsoftBarcodeReaderx64
+	   #include <stdlib.h>
+	   #include "DynamsoftBarcodeReader.h"
+	   #include "DynamsoftCommon.h"
+	   #include "bridge.h"
+	*/
 	"C"
 )
 
@@ -105,4 +109,10 @@ func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 
 	C.DBR_FreeTextResults(&resultArray)
 	return int(ret), barcodes
+}
+
+// GetVersion func
+func GetVersion() string {
+	version := C.DBR_GetVersion()
+	return C.GoString(version)
 }

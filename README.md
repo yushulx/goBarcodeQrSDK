@@ -1,20 +1,25 @@
 # Golang Barcode QR Code Reader
-The project is a Golang wrapper for [Dynamsoft Barcode Reader C++ SDK](https://www.dynamsoft.com/barcode-reader/sdk-desktop-server/). You can use this module to read barcodes, QR Code (including Micro QR Code), Data Matrix, PDF417 (including Micro PDF417), Aztec Code, MaxiCode (mode 2-5), and DotCode from images and PDF files.
+This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SDK](https://www.dynamsoft.com/barcode-reader/sdk-desktop-server/). With this module, you can efficiently read various types of barcodes and symbols, including QR Codes (and Micro QR Codes), Data Matrix, PDF417 (and Micro PDF417), Aztec Code, MaxiCode (modes 2-5), and DotCode from images and PDF files.
 
-## Pre-requisites
-* [Go v1.19](https://go.dev/dl/)
-* Dynamsoft Barcode Reader v9.x. You can get a free trial license from [here](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
+## Prerequisites
+* [Go](https://go.dev/dl/)
+* [Dynamsoft Barcode Reader v9.x trial license](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
 
 ## Test the Module
 
 ```bash
-go test
+# Windows
+run_windows_test.ps1
+
+# Linux
+run_linux_test.sh
 ```
 
 ## Parameter Configuration
-[https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html?ver=latest](https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html?ver=latest)
+[https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html](https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html)
 
 ## Example
+Set the license key within the `InitLicense()` function, and replace the `image-file` with the path of the image file you wish to decode.
 
 ```go
 package main
@@ -27,7 +32,7 @@ import (
 )
 
 func main() {
-	ret, _ := goBarcodeQrSDK.InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+	ret, _ := goBarcodeQrSDK.InitLicense("LICENSE-KEY")
 	if ret != 0 {
 		fmt.Printf(`initLicense("") = %d`, ret)
 	}
@@ -57,13 +62,7 @@ func main() {
 	}
 }
 
-```
-
-Set the license key in `InitLicense()` and update the `image-file` to the path of the image file you want to decode. Then run the example.
-
-```bash
-go run .
-```
+``` 
 
 ## Docker Build
 - Build and run barcode QR code reader in Docker:

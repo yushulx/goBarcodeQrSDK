@@ -79,3 +79,8 @@ func TestApp(t *testing.T) {
 		fmt.Println(barcode.Y4)
 	}
 }
+
+func TestGetVersion(t *testing.T) {
+	ret := GetVersion()
+	fmt.Println(ret)
+}
