@@ -1,8 +1,18 @@
-## How to Build the Shared Library on Windows
+## How to Build the Shared Library 
 
-```bash
-mkdir build
-cd build
-cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..
-cmake --build . --config release
-```
+- Windows:
+
+    ```bash
+    mkdir build
+    cd build
+    cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..
+    cmake --build . --config Release
+    ```
+- Linux:
+
+    ```bash
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build . --config Release
+    ```
