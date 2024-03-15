@@ -3,7 +3,7 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 
 ## Prerequisites
 * [Go](https://go.dev/dl/)
-* [Dynamsoft Barcode Reader v9.x trial license](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
+* [Dynamsoft Barcode Reader v10.x trial license](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
 
 ## Test the Module
 
@@ -31,13 +31,40 @@ import (
 	"github.com/yushulx/goBarcodeQrSDK"
 )
 
+var jsonString = `{
+	"CaptureVisionTemplates": [
+	  {
+		"Name": "cv0",
+		"ImageROIProcessingNameArray": [
+		  "roi-read-barcodes"
+		],
+		"Timeout": 10000
+	  }
+	],
+	"TargetROIDefOptions": [
+	  {
+		"Name": "roi-read-barcodes",
+		"TaskSettingNameArray": [
+		  "task-read-barcodes"
+		]
+	  }
+	],
+	"BarcodeReaderTaskSettingOptions": [
+	  {
+		"Name": "task-read-barcodes",
+		"ExpectedBarcodesCount": 0,
+		"BarcodeFormatIds": [ "BF_DEFAULT" ]
+	  }
+	]
+  }`
+
 func main() {
 	ret, _ := goBarcodeQrSDK.InitLicense("LICENSE-KEY")
 	if ret != 0 {
 		fmt.Printf(`initLicense("") = %d`, ret)
 	}
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
-	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	obj.SetParameters(jsonString)
 	startTime := time.Now()
 	code, barcodes := obj.DecodeFile("image-file")
 	elapsed := time.Since(startTime)
