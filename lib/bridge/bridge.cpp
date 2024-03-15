@@ -70,7 +70,6 @@ C_API int DBR_DecodeFile(void *barcodeReader, const char *pFileName, const char 
 
 C_API const char *DBR_GetVersion()
 {
-    // return "1.0.2";
     return CBarcodeReaderModule::GetVersion();
 }
 
