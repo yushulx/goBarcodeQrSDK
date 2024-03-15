@@ -6,6 +6,33 @@ import (
 	"time"
 )
 
+var jsonString = `{
+	"CaptureVisionTemplates": [
+	  {
+		"Name": "cv0",
+		"ImageROIProcessingNameArray": [
+		  "roi-read-barcodes"
+		],
+		"Timeout": 10000
+	  }
+	],
+	"TargetROIDefOptions": [
+	  {
+		"Name": "roi-read-barcodes",
+		"TaskSettingNameArray": [
+		  "task-read-barcodes"
+		]
+	  }
+	],
+	"BarcodeReaderTaskSettingOptions": [
+	  {
+		"Name": "task-read-barcodes",
+		"ExpectedBarcodesCount": 0,
+		"BarcodeFormatIds": [ "BF_DEFAULT" ]
+	  }
+	]
+  }`
+
 func TestInitLicense(t *testing.T) {
 	ret, _ := InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
 	if ret != 0 {
@@ -27,7 +54,7 @@ func TestDestroyBarcodeReader(t *testing.T) {
 
 func TestSetParameters(t *testing.T) {
 	obj := CreateBarcodeReader()
-	ret, _ := obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	ret, _ := obj.SetParameters(jsonString)
 	if ret != 0 {
 		t.Fatalf(`SetParameters() = %d`, ret)
 	}
@@ -43,11 +70,13 @@ func TestLoadTemplateFile(t *testing.T) {
 
 func TestDecodeFile(t *testing.T) {
 	obj := CreateBarcodeReader()
-	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	obj.SetParameters(jsonString)
 	ret, _ := obj.DecodeFile("test.png")
 	if ret != 0 {
 		t.Fatalf(`DecodeFile() = %d`, ret)
 	}
+
+	fmt.Println("TestDecodeFile done!")
 }
 
 func TestApp(t *testing.T) {
@@ -56,7 +85,7 @@ func TestApp(t *testing.T) {
 		t.Fatalf(`initLicense("") = %d`, ret)
 	}
 	obj := CreateBarcodeReader()
-	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	obj.SetParameters(jsonString)
 	startTime := time.Now()
 	code, barcodes := obj.DecodeFile("test.png")
 	elapsed := time.Since(startTime)
@@ -78,6 +107,8 @@ func TestApp(t *testing.T) {
 		fmt.Println(barcode.X4)
 		fmt.Println(barcode.Y4)
 	}
+
+	fmt.Println("TestApp done!")
 }
 
 func TestGetVersion(t *testing.T) {

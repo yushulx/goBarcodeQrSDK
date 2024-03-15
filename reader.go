@@ -1,18 +1,18 @@
 package goBarcodeQrSDK
 
 import (
-	"unsafe"
-
 	/*
-	   #cgo CFLAGS: -I${SRCDIR}/lib
-	   #cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lDynamsoftBarcodeReader -Wl,-rpath=\$$ORIGIN
-	   #cgo windows LDFLAGS: -L${SRCDIR}/lib/windows -lDynamsoftBarcodeReaderx64
+	   #cgo CXXFLAGS: -std=c++11
+	   #cgo CFLAGS: -I${SRCDIR}/lib -I${SRCDIR}/lib/bridge
+	   #cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lbridge  -Wl,-rpath=\$$ORIGIN
+	   #cgo windows LDFLAGS: -L${SRCDIR}/lib/windows -lbridge
 	   #include <stdlib.h>
-	   #include "DynamsoftBarcodeReader.h"
-	   #include "DynamsoftCommon.h"
 	   #include "bridge.h"
 	*/
 	"C"
+)
+import (
+	"unsafe"
 )
 
 type Barcode struct {
@@ -55,7 +55,7 @@ type BarcodeReader struct {
 }
 
 func (reader *BarcodeReader) SetParameters(params string) (int, string) {
-	errorBuffer := make([]byte, 256)
+	errorBuffer := make([]byte, 256*1024)
 	ret := C.DBR_InitRuntimeSettingsWithString(reader.handler, C.CString(params), C.CM_OVERWRITE, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
 	return int(ret), string(errorBuffer)
 }
@@ -80,34 +80,37 @@ func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 	}
 
 	var resultArray *C.TextResultArray
-	C.DBR_GetAllTextResults(reader.handler, &resultArray)
+	ret = C.DBR_GetAllTextResults(reader.handler, &resultArray)
 
-	if resultArray.resultsCount > 0 {
-		for i := 0; i < int(resultArray.resultsCount); i++ {
-			barcode := Barcode{}
-			result := C.getTextResultPointer(resultArray, C.int(i))
+	if ret == 0 {
+		if resultArray.resultsCount > 0 {
+			for i := 0; i < int(resultArray.resultsCount); i++ {
+				barcode := Barcode{}
+				result := C.getTextResultPointer(resultArray, C.int(i))
 
-			format := C.getFormatString(result)
-			barcode.Format = C.GoString(format)
+				format := C.getFormatString(result)
+				barcode.Format = C.GoString(format)
 
-			text := C.getText(result)
-			barcode.Text = C.GoString(text)
+				text := C.getText(result)
+				barcode.Text = C.GoString(text)
 
-			localization := C.getLocalizationPointer(result)
-			barcode.X1 = int(localization.x1)
-			barcode.Y1 = int(localization.y1)
-			barcode.X2 = int(localization.x2)
-			barcode.Y2 = int(localization.y2)
-			barcode.X3 = int(localization.x3)
-			barcode.Y3 = int(localization.y3)
-			barcode.X4 = int(localization.x4)
-			barcode.Y4 = int(localization.y4)
+				localization := C.getLocalizationPointer(result)
+				barcode.X1 = int(localization.x1)
+				barcode.Y1 = int(localization.y1)
+				barcode.X2 = int(localization.x2)
+				barcode.Y2 = int(localization.y2)
+				barcode.X3 = int(localization.x3)
+				barcode.Y3 = int(localization.y3)
+				barcode.X4 = int(localization.x4)
+				barcode.Y4 = int(localization.y4)
 
-			barcodes = append(barcodes, barcode)
+				barcodes = append(barcodes, barcode)
+			}
 		}
+
+		C.DBR_FreeTextResults(&resultArray)
 	}
 
-	C.DBR_FreeTextResults(&resultArray)
 	return int(ret), barcodes
 }
 
