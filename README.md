@@ -5,14 +5,22 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 * [Go](https://go.dev/dl/)
 * [Dynamsoft Barcode Reader v9.x trial license](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
 
+## Supported Platforms
+- Windows
+- Linux
+- macOS
+
 ## Test the Module
 
 ```bash
 # Windows
-run_windows_test.ps1
+.\run_windows_test.ps1
 
 # Linux
-run_linux_test.sh
+./run_linux_test.sh
+
+## mac
+sudo ./run_mac_test.sh
 ```
 
 ## Parameter Configuration

@@ -5,6 +5,7 @@ import (
 
 	/*
 	   #cgo CFLAGS: -I${SRCDIR}/lib
+	   #cgo darwin LDFLAGS: -L${SRCDIR}/lib/mac -lDynamsoftBarcodeReader
 	   #cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lDynamsoftBarcodeReader -Wl,-rpath=\$$ORIGIN
 	   #cgo windows LDFLAGS: -L${SRCDIR}/lib/windows -lDynamsoftBarcodeReaderx64
 	   #include <stdlib.h>

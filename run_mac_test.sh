@@ -1,8 +1,17 @@
 #!/bin/bash
 
-LIB_DIR="lib/mac"
+RPATH="./lib/mac"
+TARGET="testapp"
 
-(
-    export DYLD_LIBRARY_PATH="$LIB_DIR:$DYLD_LIBRARY_PATH"
-    go test
-)
+go test -c -o $TARGET
+
+if ! otool -l $TARGET | grep -q $RPATH; then
+    echo "Adding rpath $RPATH to $TARGET"
+    install_name_tool -add_rpath $RPATH $TARGET
+else
+    echo "RPATH $RPATH already exists in $TARGET"
+fi
+
+./testapp
+
+rm ./testapp
