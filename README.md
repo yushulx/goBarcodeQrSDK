@@ -20,6 +20,7 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 ./run_linux_test.sh
 
 ## mac
+chmod +x run_mac_test.sh
 sudo ./run_mac_test.sh
 ```
 
