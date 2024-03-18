@@ -24,10 +24,111 @@ chmod +x run_mac_test.sh
 sudo ./run_mac_test.sh
 ```
 
+## How to Use the Go Module 
+1. Download the Go module:
+
+	```bash
+	go get github.com/yushulx/goBarcodeQrSDK
+	```
+
+2. Import the package in your Go file:
+
+	```go
+	import (
+		"github.com/yushulx/goBarcodeQrSDK"
+	)
+	```
+3. Specify the dynamic library path at runtime before running Go apps.
+
+	- **Windows**
+
+		```bash
+		$originalPath = $env:PATH
+
+		# Get the GOPATH
+		$GOPATH = $(go env GOPATH)
+
+		# Find the path to the shared libraries
+		$PACKAGE_PATH = Get-ChildItem -Path "$GOPATH\pkg\mod\github.com\yushulx" -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+		Write-Host "PACKAGE_PATH set to $PACKAGE_PATH"
+		$LIBRARY_PATH = "$PACKAGE_PATH\lib\windows"
+
+		Write-Host "LIBRARY_PATH set to $LIBRARY_PATH"
+		# Update PATH to include the assembly path
+		$env:PATH = "$LIBRARY_PATH;" + $env:PATH
+		# Write-Host "PATH set to $($env:PATH)"
+
+		# Run your Go application
+		go run test.go test.png
+
+		$env:PATH = $originalPath
+		```
+
+	- **Linux**
+
+		```bash
+		#!/bin/bash
+
+		# Save the original PATH
+		originalPath=$LD_LIBRARY_PATH
+
+		# Get the GOPATH
+		GOPATH=$(go env GOPATH)
+
+		# Find the path to the shared libraries
+		PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1 -type d | sort -r | head -n 1)
+		echo "PACKAGE_PATH set to $PACKAGE_PATH"
+		LIBRARY_PATH="$PACKAGE_PATH/lib/linux"
+
+		echo "LIBRARY_PATH set to $LIBRARY_PATH"
+
+		export LD_LIBRARY_PATH="$LIBRARY_PATH:$originalPath"
+
+		# Run your Go application
+		go run test.go test.png
+
+		# Restore the original PATH
+		export LD_LIBRARY_PATH=$originalPath
+		```
+		
+	- **macOS**
+
+		```bash
+		#!/bin/bash
+
+		# Save the original PATH
+		originalPath=$LD_LIBRARY_PATH
+
+		# Get the GOPATH
+		GOPATH=$(go env GOPATH)
+
+		# Find the path to the shared libraries
+		PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1 -type d | sort -r | head -n 1)
+		echo "PACKAGE_PATH set to $PACKAGE_PATH"
+		RPATH="$PACKAGE_PATH/lib/mac"
+
+		echo "LIBRARY_PATH set to $LIBRARY_PATH"
+
+		TARGET="testapp"
+
+		go build -o $TARGET
+
+		if ! otool -l $TARGET | grep -q $RPATH; then
+			echo "Adding rpath $RPATH to $TARGET"
+			install_name_tool -add_rpath $RPATH $TARGET
+		else
+			echo "RPATH $RPATH already exists in $TARGET"
+		fi
+
+		./$TARGET test.png
+
+		rm ./$TARGET
+		```
+
 ## Parameter Configuration
 [https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html](https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html)
 
-## Example
+## Quick Start
 Set the license key within the `InitLicense()` function, and replace the `image-file` with the path of the image file you wish to decode.
 
 ```go
@@ -72,6 +173,11 @@ func main() {
 }
 
 ``` 
+
+## Example
+- [Command-line](https://github.com/yushulx/goBarcodeQrSDK/tree/main/example/command-line)
+
+
 
 ## Docker Build
 - Build and run barcode QR code reader in Docker:
