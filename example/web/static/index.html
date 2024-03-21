@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Dynamsoft Vision SDKs</title>
+</head>
+
+<body>
+    <h1>1D/2D Barcode Reader</h1>
+    <div id="loading-indicator" class="loading-indicator">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Image File -->
+    <div class="container" id="file_container">
+        <div>
+            <input type="file" id="pick_file" accept="image/*" />
+            <button onclick="detect()">Detect</button>
+        </div>
+
+        <div class="row">
+            <div class="imageview">
+                <img id="image_file" src="default.png" />
+                <canvas id="overlay_canvas" class="overlay"></canvas>
+            </div>
+        </div>
+
+        <div class="row">
+            <div>
+                <textarea id="detection_result"></textarea>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>

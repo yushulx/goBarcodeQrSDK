@@ -2,6 +2,7 @@ package goBarcodeQrSDK
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
@@ -83,4 +84,31 @@ func TestApp(t *testing.T) {
 func TestGetVersion(t *testing.T) {
 	ret := GetVersion()
 	fmt.Println(ret)
+}
+
+func TestDecodeStream(t *testing.T) {
+	obj := CreateBarcodeReader()
+	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	data, err := os.ReadFile("test.png")
+	if err != nil {
+		t.Fatalf("Unable to read file: %v", err)
+	}
+
+	ret, barcodes := obj.DecodeStream(data)
+	if ret != 0 {
+		t.Fatalf(`DecodeFile() = %d`, ret)
+	}
+
+	for _, barcode := range barcodes {
+		fmt.Println(barcode.Text)
+		fmt.Println(barcode.Format)
+		fmt.Println(barcode.X1)
+		fmt.Println(barcode.Y1)
+		fmt.Println(barcode.X2)
+		fmt.Println(barcode.Y2)
+		fmt.Println(barcode.X3)
+		fmt.Println(barcode.Y3)
+		fmt.Println(barcode.X4)
+		fmt.Println(barcode.Y4)
+	}
 }
