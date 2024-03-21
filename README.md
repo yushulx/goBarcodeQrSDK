@@ -176,7 +176,7 @@ func main() {
 
 ## Example
 - [Command-line](https://github.com/yushulx/goBarcodeQrSDK/tree/main/example/command-line)
-
+- [Web](https://github.com/yushulx/goBarcodeQrSDK/tree/main/example/web)
 
 
 ## Docker Build
