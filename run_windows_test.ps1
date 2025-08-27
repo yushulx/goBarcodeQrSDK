@@ -2,7 +2,7 @@
 $originalPath = $env:PATH
 
 # Define the path to your DLLs
-$dllPath = "lib\windows"
+$dllPath = "dcv\lib\win"
 
 # Prepend the DLL path to the PATH environment variable
 $env:PATH = "$dllPath;$originalPath"

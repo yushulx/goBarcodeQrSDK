@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RPATH="./lib/mac"
+RPATH="./dcv/lib/mac"
 TARGET="testapp"
 
 go test -c -o $TARGET

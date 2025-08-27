@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LIB_DIR="lib/linux"
+LIB_DIR="dcv/lib/linux"
 
 ORIGINAL_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 

@@ -8,7 +8,7 @@ $PACKAGE_PATH = Get-ChildItem -Path "$GOPATH\pkg\mod\github.com\yushulx" -Direct
 Write-Host "PACKAGE_PATH set to $PACKAGE_PATH"
 # $LIBRARY_PATH = "$PACKAGE_PATH\lib\windows"
 
-$LIBRARY_PATH = "../../lib/windows"
+$LIBRARY_PATH = "../../dcv/lib/win"
 
 Write-Host "LIBRARY_PATH set to $LIBRARY_PATH"
 # Update PATH to include the assembly path
