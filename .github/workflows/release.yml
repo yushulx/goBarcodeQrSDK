@@ -12,14 +12,14 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux
-            lib_name: bridge.so
+            lib_name: libbridge.so
             lib_path: dcv/lib/linux
             artifact_name: goBarcodeQrSDK-linux-x64
             archive_cmd: tar -czf
             archive_ext: tar.gz
           - os: macos-latest
             platform: macos
-            lib_name: bridge.dylib
+            lib_name: libbridge.dylib
             lib_path: dcv/lib/mac
             artifact_name: goBarcodeQrSDK-macos-universal
             archive_cmd: tar -czf

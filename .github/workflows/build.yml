@@ -15,12 +15,12 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             lib_path: dcv/lib/linux
-            bridge_output: dcv/lib/linux/bridge.so
+            bridge_output: dcv/lib/linux/libbridge.so
             cmake_generator: "Unix Makefiles"
           - os: macos-latest
             platform: mac
             lib_path: dcv/lib/mac
-            bridge_output: dcv/lib/mac/bridge.dylib
+            bridge_output: dcv/lib/mac/libbridge.dylib
             cmake_generator: "Unix Makefiles"
           - os: windows-latest
             platform: windows
