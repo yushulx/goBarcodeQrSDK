@@ -55,13 +55,18 @@ Get-ChildItem ".github/workflows/*.yml" | ForEach-Object {
     if ($content -match "setup-msbuild@v2") {
         Write-Host "    ✅ Using current setup-msbuild@v2" -ForegroundColor Green
     }
+    
+    if ($content -match "jwlawson/actions-setup-cmake@v2") {
+        Write-Host "    ✅ Using actions-setup-cmake@v2" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
 if ($deprecatedFound) {
     Write-Host "❌ Deprecated actions found! Please update them before pushing." -ForegroundColor Red
     exit 1
-} else {
+}
+else {
     Write-Host "✅ All GitHub Actions are using current versions!" -ForegroundColor Green
     Write-Host "🚀 Safe to push to GitHub!" -ForegroundColor Cyan
 }

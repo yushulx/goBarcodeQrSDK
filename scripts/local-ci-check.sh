@@ -29,10 +29,22 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
     cmake --build . --config Release
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "🍎 Detected macOS platform"
+    # Ensure CMake is available
+    if ! command -v cmake &> /dev/null; then
+        echo "CMake not found. Please install CMake first:"
+        echo "brew install cmake"
+        exit 1
+    fi
     cmake ..
     make
 else
     echo "🐧 Detected Linux platform"
+    # Ensure CMake is available
+    if ! command -v cmake &> /dev/null; then
+        echo "CMake not found. Please install CMake first:"
+        echo "sudo apt-get update && sudo apt-get install -y cmake build-essential"
+        exit 1
+    fi
     cmake ..
     make
 fi

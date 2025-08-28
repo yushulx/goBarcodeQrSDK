@@ -56,6 +56,10 @@ for file in .github/workflows/*.yml; do
         if grep -q "setup-msbuild@v2" "$file"; then
             echo "    ✅ Using current setup-msbuild@v2"
         fi
+        
+        if grep -q "jwlawson/actions-setup-cmake@v2" "$file"; then
+            echo "    ✅ Using actions-setup-cmake@v2"
+        fi
     fi
 done
 
