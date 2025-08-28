@@ -99,6 +99,40 @@ jobs:
         go mod tidy
         go mod verify
 
+    - name: Debug Windows DLL paths
+      if: matrix.os == 'windows-latest'
+      run: |
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Bridge DLL location:"
+        Get-ChildItem -Path "dcv\lib\win" -Filter "*.dll" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+        Write-Host "Dynamsoft DLLs:"
+        Get-ChildItem -Path "dcv\lib\win" -Filter "*Dynamsoft*.dll" | ForEach-Object { Write-Host "  $($_.Name)" }
+        Write-Host "Current PATH:"
+        $env:PATH -split ';' | ForEach-Object { if ($_ -like "*dcv*" -or $_ -like "*Dynamsoft*") { Write-Host "  $_" } }
+      shell: powershell
+
+    - name: Run Go tests (Windows)
+      if: matrix.os == 'windows-latest'
+      env:
+        CGO_ENABLED: 1
+      run: |
+        # Add DLL directories to PATH
+        $currentPath = $env:PATH
+        $dllPath1 = Join-Path (Get-Location) "dcv\lib\win"
+        $dllPath2 = Join-Path (Get-Location) "dcv\lib\win\Release"
+        $env:PATH = "$currentPath;$dllPath1;$dllPath2"
+        Write-Host "Updated PATH with DLL directories"
+        go test -v
+      shell: powershell
+
+    - name: Run Go tests (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go test -v
+      shell: bash
+
     - name: Prepare examples for CI testing (Windows)
       if: matrix.os == 'windows-latest'
       run: |
@@ -113,12 +147,6 @@ jobs:
         chmod +x scripts/prepare-ci.sh
         ./scripts/prepare-ci.sh
       shell: bash
-
-    - name: Run Go tests
-      env:
-        CGO_ENABLED: 1
-      run: |
-        go test -v
 
     - name: Test command-line example
       working-directory: ./example/command-line
