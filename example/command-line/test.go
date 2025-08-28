@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/yushulx/goBarcodeQrSDK"
+	"github.com/yushulx/goBarcodeQrSDK/v2"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yushulx/goBarcodeQrSDK"
+	"github.com/yushulx/goBarcodeQrSDK/v2"
 )
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
-
+	template := "template.json"
+	var ret, errMsg = obj.LoadTemplateFile(template)
+	if ret != 0 {
+		fmt.Println(`LoadTemplateFile(): `, ret)
+		fmt.Println(errMsg)
+	}
 	startTime := time.Now()
 	ret, barcodes := obj.DecodeStream(imgData)
 	elapsed := time.Since(startTime)
