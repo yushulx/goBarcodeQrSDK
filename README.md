@@ -3,7 +3,7 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 
 ## Prerequisites
 * [Go](https://go.dev/dl/)
-* [Dynamsoft Barcode Reader v9.x trial license](https://www.dynamsoft.com/customer/license/trialLicense?product=dbr).
+* [30-day free trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform) for Dynamsoft Barcode Reader.
 
 ## Supported Platforms
 - Windows
@@ -125,9 +125,6 @@ sudo ./run_mac_test.sh
 		rm ./$TARGET
 		```
 
-## Parameter Configuration
-[https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html](https://www.dynamsoft.com/barcode-reader/docs/core/parameters/structure-and-interfaces-of-parameters.html)
-
 ## Quick Start
 Set the license key within the `InitLicense()` function, and replace the `image-file` with the path of the image file you wish to decode.
 
@@ -147,7 +144,12 @@ func main() {
 		fmt.Printf(`initLicense("") = %d`, ret)
 	}
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
-	obj.SetParameters("{\"ImageParameter\":{\"BarcodeFormatIds\":[\"BF_ONED\",\"BF_PDF417\",\"BF_QR_CODE\",\"BF_DATAMATRIX\"],\"BarcodeFormatIds_2\":null,\"Name\":\"sts\",\"RegionDefinitionNameArray\":[\"region0\"]},\"RegionDefinition\":{\"Bottom\":100,\"Left\":0,\"MeasuredByPercentage\":1,\"Name\":\"region0\",\"Right\":100,\"Top\":0}}")
+	templateData, err := os.ReadFile("template.json")
+	if err != nil {
+		t.Fatalf("Failed to read template.json: %v", err)
+	}
+
+	ret, _ := obj.SetParameters(string(templateData))
 	startTime := time.Now()
 	code, barcodes := obj.DecodeFile("image-file")
 	elapsed := time.Since(startTime)
