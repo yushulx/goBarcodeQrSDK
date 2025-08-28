@@ -6,49 +6,7 @@ on:
       - 'v*.*.*'
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      tag_name: ${{ steps.get_tag.outputs.tag_name }}
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Get tag name
-      id: get_tag
-      run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.get_tag.outputs.tag_name }}
-        release_name: Go Barcode QR SDK ${{ steps.get_tag.outputs.tag_name }}
-        body: |
-          Cross-platform Go SDK for Dynamsoft Barcode Reader v11
-          
-          ## What's New
-          - Cross-platform support (Windows, Linux, macOS)
-          - Dynamsoft Barcode Reader v11 integration
-          - Updated Go module with proper v2 versioning
-          
-          ## Downloads
-          - Download the appropriate binary for your platform
-          - See README.md for integration instructions
-          
-          ## Platform Support
-          - ✅ Windows (x64)
-          - ✅ Linux (x64)  
-          - ✅ macOS (x64/ARM64)
-        draft: false
-        prerelease: false
-
-  build-and-upload:
-    needs: create-release
+  build-and-release:
     strategy:
       matrix:
         include:
@@ -57,16 +15,22 @@ jobs:
             lib_name: bridge.so
             lib_path: dcv/lib/linux
             artifact_name: goBarcodeQrSDK-linux-x64
+            archive_cmd: tar -czf
+            archive_ext: tar.gz
           - os: macos-latest
             platform: macos
             lib_name: bridge.dylib
             lib_path: dcv/lib/mac
             artifact_name: goBarcodeQrSDK-macos-universal
+            archive_cmd: tar -czf
+            archive_ext: tar.gz
           - os: windows-latest
             platform: windows
             lib_name: bridge.dll
             lib_path: dcv/lib/win/Release
             artifact_name: goBarcodeQrSDK-windows-x64
+            archive_cmd: 7z a
+            archive_ext: zip
 
     runs-on: ${{ matrix.os }}
 
@@ -92,7 +56,7 @@ jobs:
 
     - name: Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
-      uses: microsoft/setup-msbuild@v1.3
+      uses: microsoft/setup-msbuild@v2
 
     - name: Build bridge library
       run: |
@@ -144,24 +108,52 @@ jobs:
         fi
       shell: bash
 
-    - name: Upload Release Asset (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./release/${{ matrix.artifact_name }}.zip
-        asset_name: ${{ matrix.artifact_name }}.zip
-        asset_content_type: application/zip
+        name: ${{ matrix.artifact_name }}
+        path: release/${{ matrix.artifact_name }}.${{ matrix.archive_ext }}
 
-    - name: Upload Release Asset (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      
+    - name: Get tag name
+      id: get_tag
+      run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./release/${{ matrix.artifact_name }}.tar.gz
-        asset_name: ${{ matrix.artifact_name }}.tar.gz
-        asset_content_type: application/gzip
+        tag_name: ${{ steps.get_tag.outputs.tag_name }}
+        name: Go Barcode QR SDK ${{ steps.get_tag.outputs.tag_name }}
+        body: |
+          Cross-platform Go SDK for Dynamsoft Barcode Reader v11
+          
+          ## What's New
+          - Cross-platform support (Windows, Linux, macOS)
+          - Dynamsoft Barcode Reader v11 integration
+          - Updated Go module with proper v2 versioning
+          
+          ## Downloads
+          - Download the appropriate binary for your platform
+          - See README.md for integration instructions
+          
+          ## Platform Support
+          - ✅ Windows (x64)
+          - ✅ Linux (x64)  
+          - ✅ macOS (x64/ARM64)
+        files: |
+          */goBarcodeQrSDK-*.zip
+          */goBarcodeQrSDK-*.tar.gz
+        draft: false
+        prerelease: false
