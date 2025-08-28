@@ -1,0 +1,11 @@
+EXPORTS
+DBR_InitLicense
+DBR_CreateInstance
+DBR_DestroyInstance
+DBR_GetVersion
+DBR_InitRuntimeSettingsWithString
+DBR_InitRuntimeSettingsWithFile
+DBR_DecodeFile
+DBR_DecodeFileInMemory
+DBR_GetAllTextResults
+DBR_FreeTextResults

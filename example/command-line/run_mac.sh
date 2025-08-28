@@ -11,7 +11,7 @@ PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1
 echo "PACKAGE_PATH set to $PACKAGE_PATH"
 # RPATH="$PACKAGE_PATH/lib/mac"
 
-RPATH="../../lib/mac"
+RPATH="../../dcv/lib/mac"
 
 echo "LIBRARY_PATH set to $LIBRARY_PATH"
 

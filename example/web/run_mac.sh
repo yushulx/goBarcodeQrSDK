@@ -9,7 +9,7 @@ GOPATH=$(go env GOPATH)
 # Find the path to the shared libraries
 PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1 -type d | sort -r | head -n 1)
 echo "PACKAGE_PATH set to $PACKAGE_PATH"
-RPATH="$PACKAGE_PATH/lib/mac"
+RPATH="$PACKAGE_PATH/dcv/lib/mac"
 
 echo "LIBRARY_PATH set to $LIBRARY_PATH"
 

@@ -4,13 +4,11 @@ import (
 	"unsafe"
 
 	/*
-	   #cgo CFLAGS: -I${SRCDIR}/lib
-	   #cgo darwin LDFLAGS: -L${SRCDIR}/lib/mac -lDynamsoftBarcodeReader
-	   #cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lDynamsoftBarcodeReader -Wl,-rpath=\$$ORIGIN
-	   #cgo windows LDFLAGS: -L${SRCDIR}/lib/windows -lDynamsoftBarcodeReaderx64
+	   #cgo CFLAGS: -I${SRCDIR}/dcv/include
+	   #cgo darwin LDFLAGS: -L${SRCDIR}/dcv/lib/mac -lbridge -Wl,-rpath,${SRCDIR}/dcv/lib/mac
+	   #cgo linux LDFLAGS: -L${SRCDIR}/dcv/lib/linux -lbridge -Wl,-rpath,${SRCDIR}/dcv/lib/linux
+	   #cgo windows LDFLAGS: -L${SRCDIR}/dcv/lib/win -lbridge
 	   #include <stdlib.h>
-	   #include "DynamsoftBarcodeReader.h"
-	   #include "DynamsoftCommon.h"
 	   #include "bridge.h"
 	*/
 	"C"
@@ -57,39 +55,44 @@ type BarcodeReader struct {
 
 func (reader *BarcodeReader) SetParameters(params string) (int, string) {
 	errorBuffer := make([]byte, 256)
-	ret := C.DBR_InitRuntimeSettingsWithString(reader.handler, C.CString(params), C.CM_OVERWRITE, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
+	c_params := C.CString(params)
+	defer C.free(unsafe.Pointer(c_params))
+
+	ret := C.DBR_InitRuntimeSettingsWithString(reader.handler, c_params, C.int(2), (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
 	return int(ret), string(errorBuffer)
 }
 
 func (reader *BarcodeReader) LoadTemplateFile(params string) (int, string) {
 	errorBuffer := make([]byte, 256)
-	ret := C.DBR_InitRuntimeSettingsWithFile(reader.handler, C.CString(params), C.CM_OVERWRITE, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
+	c_params := C.CString(params)
+	defer C.free(unsafe.Pointer(c_params))
+
+	ret := C.DBR_InitRuntimeSettingsWithFile(reader.handler, c_params, C.int(2), (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
 	return int(ret), string(errorBuffer)
 }
 
-func (reader *BarcodeReader) processResults(resultArray *C.TextResultArray) []Barcode {
+func (reader *BarcodeReader) processResults(resultArray *C.BarcodeResultArrayC) []Barcode {
 	var barcodes = []Barcode{}
 
-	if resultArray.resultsCount > 0 {
-		for i := 0; i < int(resultArray.resultsCount); i++ {
+	if resultArray.count > 0 {
+		// Convert C array to Go slice
+		results := (*[1 << 28]C.BarcodeResultC)(unsafe.Pointer(resultArray.results))[:resultArray.count:resultArray.count]
+
+		for i := 0; i < int(resultArray.count); i++ {
 			barcode := Barcode{}
-			result := C.getTextResultPointer(resultArray, C.int(i))
+			result := &results[i]
 
-			format := C.getFormatString(result)
-			barcode.Format = C.GoString(format)
+			barcode.Format = C.GoString(result.format)
+			barcode.Text = C.GoString(result.text)
 
-			text := C.getText(result)
-			barcode.Text = C.GoString(text)
-
-			localization := C.getLocalizationPointer(result)
-			barcode.X1 = int(localization.x1)
-			barcode.Y1 = int(localization.y1)
-			barcode.X2 = int(localization.x2)
-			barcode.Y2 = int(localization.y2)
-			barcode.X3 = int(localization.x3)
-			barcode.Y3 = int(localization.y3)
-			barcode.X4 = int(localization.x4)
-			barcode.Y4 = int(localization.y4)
+			barcode.X1 = int(result.x1)
+			barcode.Y1 = int(result.y1)
+			barcode.X2 = int(result.x2)
+			barcode.Y2 = int(result.y2)
+			barcode.X3 = int(result.x3)
+			barcode.Y3 = int(result.y3)
+			barcode.X4 = int(result.x4)
+			barcode.Y4 = int(result.y4)
 
 			barcodes = append(barcodes, barcode)
 		}
@@ -102,15 +105,13 @@ func (reader *BarcodeReader) processResults(resultArray *C.TextResultArray) []Ba
 func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
-	template := C.CString("")
-	defer C.free(unsafe.Pointer(template))
 
-	ret := C.DBR_DecodeFile(reader.handler, c_filePath, template)
+	ret := C.DBR_DecodeFile(reader.handler, c_filePath)
 	if ret != 0 {
 		return int(ret), []Barcode{}
 	}
 
-	var resultArray *C.TextResultArray
+	var resultArray *C.BarcodeResultArrayC
 	C.DBR_GetAllTextResults(reader.handler, &resultArray)
 
 	barcodes := reader.processResults(resultArray)
@@ -118,16 +119,19 @@ func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
 }
 
 func (reader *BarcodeReader) DecodeStream(data []byte) (int, []Barcode) {
-	cData, length := (*C.uchar)(unsafe.Pointer(&data[0])), C.int(len(data))
-	template := C.CString("")
-	defer C.free(unsafe.Pointer(template))
+	if len(data) == 0 {
+		return -1, []Barcode{}
+	}
 
-	ret := C.DBR_DecodeFileInMemory(reader.handler, cData, length, template)
+	cData := (*C.uchar)(unsafe.Pointer(&data[0]))
+	length := C.int(len(data))
+
+	ret := C.DBR_DecodeFileInMemory(reader.handler, cData, length)
 	if ret != 0 {
 		return int(ret), []Barcode{}
 	}
 
-	var resultArray *C.TextResultArray
+	var resultArray *C.BarcodeResultArrayC
 	C.DBR_GetAllTextResults(reader.handler, &resultArray)
 
 	barcodes := reader.processResults(resultArray)
