@@ -1,5 +1,3 @@
-module github.com/yushulx/goBarcodeQrSDK
+module github.com/yushulx/goBarcodeQrSDK/v2
 
 go 1.19
-
-require gocv.io/x/gocv v0.35.0 // indirect

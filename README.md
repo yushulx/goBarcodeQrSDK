@@ -1,4 +1,9 @@
 # Golang Barcode QR Code Reader
+
+[![Cross-Platform Build](https://github.com/yushulx/goBarcodeQrSDK/actions/workflows/build.yml/badge.svg)](https://github.com/yushulx/goBarcodeQrSDK/actions/workflows/build.yml)
+[![Test PR](https://github.com/yushulx/goBarcodeQrSDK/actions/workflows/test-pr.yml/badge.svg)](https://github.com/yushulx/goBarcodeQrSDK/actions/workflows/test-pr.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yushulx/goBarcodeQrSDK)](https://goreportcard.com/report/github.com/yushulx/goBarcodeQrSDK)
+
 This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SDK](https://www.dynamsoft.com/barcode-reader/sdk-desktop-server/). With this module, you can efficiently read various types of barcodes and symbols, including QR Codes (and Micro QR Codes), Data Matrix, PDF417 (and Micro PDF417), Aztec Code, MaxiCode (modes 2-5), and DotCode from images and PDF files.
 
 ## Prerequisites
@@ -6,9 +11,9 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 * [30-day free trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform) for Dynamsoft Barcode Reader.
 
 ## Supported Platforms
-- Windows
-- Linux
-- macOS
+- Windows (x64)
+- Linux (x64)
+- macOS (x64/ARM64)
 
 ## Test the Module
 

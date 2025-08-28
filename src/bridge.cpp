@@ -250,12 +250,12 @@ extern "C"
                 }
             }
 
-            // Create result array
-            static BarcodeResultArrayC resultArray;
-            resultArray.results = inst->results.data();
-            resultArray.count = inst->results.size();
+            // Create result array with dynamic allocation
+            BarcodeResultArrayC *resultArray = new BarcodeResultArrayC();
+            resultArray->results = inst->results.data();
+            resultArray->count = inst->results.size();
 
-            *results = &resultArray;
+            *results = resultArray;
             return 0;
         }
         catch (...)
@@ -267,8 +267,9 @@ extern "C"
 
     void DBR_FreeTextResults(BarcodeResultArrayC **results)
     {
-        if (results)
+        if (results && *results)
         {
+            delete *results;
             *results = nullptr;
         }
     }

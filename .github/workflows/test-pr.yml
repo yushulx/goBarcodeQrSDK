@@ -1,0 +1,66 @@
+name: Test PR
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake
+
+    - name: Setup MSVC (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1.3
+
+    - name: Build bridge library
+      run: |
+        mkdir build
+        cd build
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake .. -G "Visual Studio 17 2022" -A x64
+          cmake --build . --config Release
+        else
+          cmake ..
+          make
+        fi
+      shell: bash
+
+    - name: Run tests
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go mod tidy
+        go test -v
+
+    - name: Verify examples compile
+      run: |
+        cd example/command-line
+        go mod tidy
+        go build .
+        cd ../web
+        go mod tidy
+        go build .

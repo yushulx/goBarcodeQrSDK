@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      tag_name: ${{ steps.get_tag.outputs.tag_name }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get tag name
+      id: get_tag
+      run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_tag.outputs.tag_name }}
+        release_name: Go Barcode QR SDK ${{ steps.get_tag.outputs.tag_name }}
+        body: |
+          Cross-platform Go SDK for Dynamsoft Barcode Reader v11
+          
+          ## What's New
+          - Cross-platform support (Windows, Linux, macOS)
+          - Dynamsoft Barcode Reader v11 integration
+          - Updated Go module with proper v2 versioning
+          
+          ## Downloads
+          - Download the appropriate binary for your platform
+          - See README.md for integration instructions
+          
+          ## Platform Support
+          - ✅ Windows (x64)
+          - ✅ Linux (x64)  
+          - ✅ macOS (x64/ARM64)
+        draft: false
+        prerelease: false
+
+  build-and-upload:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            lib_name: bridge.so
+            lib_path: dcv/lib/linux
+            artifact_name: goBarcodeQrSDK-linux-x64
+          - os: macos-latest
+            platform: macos
+            lib_name: bridge.dylib
+            lib_path: dcv/lib/mac
+            artifact_name: goBarcodeQrSDK-macos-universal
+          - os: windows-latest
+            platform: windows
+            lib_name: bridge.dll
+            lib_path: dcv/lib/win/Release
+            artifact_name: goBarcodeQrSDK-windows-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Install dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Install dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake
+
+    - name: Setup MSVC (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1.3
+
+    - name: Build bridge library
+      run: |
+        mkdir build
+        cd build
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cmake .. -G "Visual Studio 17 2022" -A x64
+          cmake --build . --config Release
+        else
+          cmake ..
+          make
+        fi
+      shell: bash
+
+    - name: Build examples
+      working-directory: ./example/command-line
+      run: |
+        go mod tidy
+        go build -o barcode-reader-${{ matrix.platform }} .
+
+    - name: Build web example
+      working-directory: ./example/web
+      run: |
+        go mod tidy
+        go build -o web-server-${{ matrix.platform }} .
+
+    - name: Create release package
+      run: |
+        mkdir -p release/${{ matrix.artifact_name }}
+        # Copy bridge library
+        cp ${{ matrix.lib_path }}/${{ matrix.lib_name }} release/${{ matrix.artifact_name }}/
+        # Copy Dynamsoft libraries
+        cp -r ${{ matrix.lib_path }}/../../../dcv/lib/${{ matrix.platform == 'macos' && 'mac' || matrix.platform }}/* release/${{ matrix.artifact_name }}/ || true
+        # Copy examples
+        cp example/command-line/barcode-reader-${{ matrix.platform }}* release/${{ matrix.artifact_name }}/ 2>/dev/null || true
+        cp example/web/web-server-${{ matrix.platform }}* release/${{ matrix.artifact_name }}/ 2>/dev/null || true
+        # Copy documentation
+        cp README.md release/${{ matrix.artifact_name }}/
+        cp LICENSE release/${{ matrix.artifact_name }}/
+        cp template.json release/${{ matrix.artifact_name }}/
+        cp test.png release/${{ matrix.artifact_name }}/
+        
+        # Create archive
+        cd release
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          7z a ${{ matrix.artifact_name }}.zip ${{ matrix.artifact_name }}/
+        else
+          tar -czf ${{ matrix.artifact_name }}.tar.gz ${{ matrix.artifact_name }}/
+        fi
+      shell: bash
+
+    - name: Upload Release Asset (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./release/${{ matrix.artifact_name }}.zip
+        asset_name: ${{ matrix.artifact_name }}.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./release/${{ matrix.artifact_name }}.tar.gz
+        asset_name: ${{ matrix.artifact_name }}.tar.gz
+        asset_content_type: application/gzip

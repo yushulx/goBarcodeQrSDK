@@ -1,0 +1,187 @@
+name: Cross-Platform Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            lib_path: dcv/lib/linux
+            bridge_output: dcv/lib/linux/bridge.so
+            cmake_generator: "Unix Makefiles"
+          - os: macos-latest
+            platform: mac
+            lib_path: dcv/lib/mac
+            bridge_output: dcv/lib/mac/bridge.dylib
+            cmake_generator: "Unix Makefiles"
+          - os: windows-latest
+            platform: windows
+            lib_path: dcv/lib/win
+            bridge_output: dcv/lib/win/Release/bridge.dll
+            cmake_generator: "Visual Studio 17 2022"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Install CMake (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Install CMake (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install cmake
+
+    - name: Setup MSVC (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1.3
+
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure CMake (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      working-directory: ./build
+      run: |
+        cmake .. -G "${{ matrix.cmake_generator }}"
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: ./build
+      run: |
+        cmake .. -G "${{ matrix.cmake_generator }}" -A x64
+
+    - name: Build bridge library (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      working-directory: ./build
+      run: |
+        make
+
+    - name: Build bridge library (Windows)
+      if: matrix.os == 'windows-latest'
+      working-directory: ./build
+      run: |
+        cmake --build . --config Release
+
+    - name: Verify bridge library exists
+      run: |
+        if [ -f "${{ matrix.bridge_output }}" ]; then
+          echo "Bridge library built successfully: ${{ matrix.bridge_output }}"
+          ls -la "${{ matrix.bridge_output }}"
+        else
+          echo "Bridge library not found at: ${{ matrix.bridge_output }}"
+          echo "Contents of lib directory:"
+          find ${{ matrix.lib_path }} -type f -name "*bridge*" || echo "No bridge files found"
+          exit 1
+        fi
+      shell: bash
+
+    - name: Test Go module
+      run: |
+        go mod tidy
+        go mod verify
+
+    - name: Prepare examples for CI testing
+      run: |
+        # Remove replace directives so CI tests published module
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          powershell -File scripts/prepare-ci.ps1
+        else
+          chmod +x scripts/prepare-ci.sh
+          ./scripts/prepare-ci.sh
+        fi
+      shell: bash
+
+    - name: Run Go tests
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go test -v
+
+    - name: Test command-line example
+      working-directory: ./example/command-line
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go mod tidy
+        go build -o barcode-reader-${{ matrix.platform }} .
+
+    - name: Test web example build
+      working-directory: ./example/web
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go mod tidy
+        go build -o web-server-${{ matrix.platform }} .
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts-${{ matrix.platform }}
+        path: |
+          ${{ matrix.bridge_output }}
+          example/command-line/barcode-reader-${{ matrix.platform }}*
+          example/web/web-server-${{ matrix.platform }}*
+        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Display structure of downloaded files
+      run: ls -la
+      
+    - name: Create Release Archive
+      run: |
+        mkdir -p release
+        # Copy bridge libraries
+        cp build-artifacts-*/dcv/lib/*/bridge.* release/ 2>/dev/null || true
+        cp build-artifacts-*/dcv/lib/*/Release/bridge.* release/ 2>/dev/null || true
+        # Copy example executables
+        cp build-artifacts-*/example/*/barcode-reader-* release/ 2>/dev/null || true
+        cp build-artifacts-*/example/*/web-server-* release/ 2>/dev/null || true
+        
+        # Create archive
+        tar -czf goBarcodeQrSDK-cross-platform.tar.gz release/
+        
+    - name: Generate build info
+      run: |
+        echo "Build Date: $(date)" > build-info.txt
+        echo "Commit: ${{ github.sha }}" >> build-info.txt
+        echo "Branch: ${{ github.ref_name }}" >> build-info.txt
+        echo "Platforms: Windows, Linux, macOS" >> build-info.txt
+        
+    - name: Upload release archive
+      uses: actions/upload-artifact@v3
+      with:
+        name: cross-platform-release
+        path: |
+          goBarcodeQrSDK-cross-platform.tar.gz
+          build-info.txt
+        retention-days: 90
