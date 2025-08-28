@@ -99,15 +99,19 @@ jobs:
         go mod tidy
         go mod verify
 
-    - name: Prepare examples for CI testing
+    - name: Prepare examples for CI testing (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
         # Remove replace directives so CI tests published module
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          powershell -File scripts/prepare-ci.ps1
-        else
-          chmod +x scripts/prepare-ci.sh
-          ./scripts/prepare-ci.sh
-        fi
+        .\scripts\prepare-ci.ps1
+      shell: powershell
+
+    - name: Prepare examples for CI testing (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        # Remove replace directives so CI tests published module
+        chmod +x scripts/prepare-ci.sh
+        ./scripts/prepare-ci.sh
       shell: bash
 
     - name: Run Go tests
