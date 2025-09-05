@@ -10,6 +10,59 @@ This project serves as a Golang wrapper for the [Dynamsoft Barcode Reader C++ SD
 * [Go](https://go.dev/dl/)
 * [30-day free trial license](https://www.dynamsoft.com/customer/license/trialLicense/?product=dcv&package=cross-platform) for Dynamsoft Barcode Reader.
 
+## Building the Bridge Library
+
+**Important**: Before using this Go module, you must build the C++ bridge library that connects Go to the Dynamsoft Barcode Reader SDK. This bridge is essential for the module to function.
+
+### Prerequisites for Building
+- **Windows**: Visual Studio 2022 with C++ build tools, CMake
+- **Linux**: GCC/G++, CMake, build-essential
+- **macOS**: Xcode Command Line Tools, CMake
+
+### Quick Build (All Platforms)
+Use the provided build scripts to automatically build the bridge library:
+
+```bash
+# Windows (PowerShell)
+.\scripts\build.ps1
+
+# Linux/macOS
+./scripts/build.sh          # For Linux
+./scripts/build_macos.sh    # For macOS
+```
+
+### Manual Build Process
+If you prefer to build manually or need to customize the build:
+
+1. **Create build directory:**
+   ```bash
+   mkdir build
+   cd build
+   ```
+
+2. **Configure with CMake:**
+   ```bash
+   # Windows
+   cmake .. -G "Visual Studio 17 2022" -A x64
+   
+   # Linux/macOS
+   cmake .. -DCMAKE_BUILD_TYPE=Release
+   ```
+
+3. **Build the library:**
+   ```bash
+   # Windows
+   cmake --build . --config Release
+   
+   # Linux/macOS
+   cmake --build . --config Release
+   ```
+
+4. **Verify build artifacts:**
+   - **Windows**: `dcv/lib/win/Release/bridge.dll`
+   - **Linux**: `dcv/lib/linux/libbridge.so`
+   - **macOS**: `dcv/lib/mac/libbridge.dylib`
+
 ## Supported Platforms
 - Windows (x64)
 - Linux (x64)
@@ -30,6 +83,9 @@ sudo ./run_mac_test.sh
 ```
 
 ## How to Use the Go Module 
+
+**Before using the module, make sure you have built the bridge library as described in the "Building the Bridge Library" section above.**
+
 1. Download the Go module:
 
 	```bash
@@ -133,6 +189,8 @@ sudo ./run_mac_test.sh
 ## Quick Start
 Set the license key within the `InitLicense()` function, and replace the `image-file` with the path of the image file you wish to decode.
 
+**Note**: This SDK supports multi-page documents (PDF, TIFF). Each barcode result includes a `PageId` field indicating which page the barcode was found on.
+
 ```go
 package main
 
@@ -166,6 +224,7 @@ func main() {
 
 	for i := 0; i < len(barcodes); i++ {
 		barcode := barcodes[i]
+		fmt.Printf("Page ID: %d\n", barcode.PageId)  // Shows which page the barcode was found on
 		fmt.Println(barcode.Text)
 		fmt.Println(barcode.Format)
 		fmt.Println(barcode.X1)

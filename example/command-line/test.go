@@ -64,6 +64,7 @@ func main() {
 
 	for i := 0; i < len(barcodes); i++ {
 		barcode := barcodes[i]
+		fmt.Printf("Page ID: %d\n", barcode.PageId)
 		fmt.Println(barcode.Text)
 		fmt.Println(barcode.Format)
 		fmt.Println(barcode.X1)

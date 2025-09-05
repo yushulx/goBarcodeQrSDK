@@ -15,6 +15,7 @@ extern "C"
         char *text;
         char *format;
         int x1, y1, x2, y2, x3, y3, x4, y4;
+        int pageId; // Page ID for multi-page documents (PDF, TIFF)
     } BarcodeResultC;
 
     // Structure to hold array of results

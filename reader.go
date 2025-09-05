@@ -25,6 +25,7 @@ type Barcode struct {
 	Y3     int
 	X4     int
 	Y4     int
+	PageId int // Page ID for multi-page documents (PDF, TIFF)
 }
 
 func InitLicense(license string) (int, string) {
@@ -93,6 +94,7 @@ func (reader *BarcodeReader) processResults(resultArray *C.BarcodeResultArrayC) 
 			barcode.Y3 = int(result.y3)
 			barcode.X4 = int(result.x4)
 			barcode.Y4 = int(result.y4)
+			barcode.PageId = int(result.pageId)
 
 			barcodes = append(barcodes, barcode)
 		}
