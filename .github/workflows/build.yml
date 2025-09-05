@@ -176,36 +176,41 @@ jobs:
         fi
       shell: bash
 
-    - name: Prepare examples for CI testing (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        # Remove replace directives so CI tests published module
-        .\scripts\prepare-ci.ps1
-      shell: powershell
+    # SKIP PREPARE-CI STEP - We want to test LOCAL code, not published module
+    # - name: Prepare examples for CI testing (Windows)
+    #   if: matrix.os == 'windows-latest'
+    #   run: |
+    #     # Remove replace directives so CI tests published module
+    #     .\scripts\prepare-ci.ps1
+    #   shell: powershell
 
-    - name: Prepare examples for CI testing (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: |
-        # Remove replace directives so CI tests published module
-        chmod +x scripts/prepare-ci.sh
-        ./scripts/prepare-ci.sh
-      shell: bash
+    # - name: Prepare examples for CI testing (Linux/macOS)
+    #   if: matrix.os != 'windows-latest'
+    #   run: |
+    #     # Remove replace directives so CI tests published module
+    #     chmod +x scripts/prepare-ci.sh
+    #     ./scripts/prepare-ci.sh
+    #   shell: bash
 
-    - name: Test command-line example
+    - name: Test command-line example (using local code)
       working-directory: ./example/command-line
       env:
         CGO_ENABLED: 1
       run: |
+        echo "Testing command-line example with local code..."
         go mod tidy
         go build -o barcode-reader-${{ matrix.platform }} .
+        echo "Command-line example built successfully"
 
-    - name: Test web example build
+    - name: Test web example build (using local code)
       working-directory: ./example/web
       env:
         CGO_ENABLED: 1
       run: |
+        echo "Testing web example with local code..."
         go mod tidy
         go build -o web-server-${{ matrix.platform }} .
+        echo "Web example built successfully"
 
     # STEP 4: UPLOAD ARTIFACTS WITH SHARED LIBRARIES
     - name: Upload shared libraries
