@@ -17,16 +17,19 @@ jobs:
             lib_path: dcv/lib/linux
             bridge_output: dcv/lib/linux/libbridge.so
             cmake_generator: "Unix Makefiles"
+            archive_name: "linux-x64"
           - os: macos-latest
             platform: mac
             lib_path: dcv/lib/mac
             bridge_output: dcv/lib/mac/libbridge.dylib
             cmake_generator: "Unix Makefiles"
+            archive_name: "macos-universal"
           - os: windows-latest
             platform: windows
             lib_path: dcv/lib/win
             bridge_output: dcv/lib/win/Release/bridge.dll
             cmake_generator: "Visual Studio 17 2022"
+            archive_name: "windows-x64"
 
     runs-on: ${{ matrix.os }}
 
@@ -54,6 +57,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v2
 
+    # STEP 1: BUILD BRIDGE LIBRARY FIRST
     - name: Create build directory
       run: mkdir build
 
@@ -94,7 +98,8 @@ jobs:
         fi
       shell: bash
 
-    - name: Test Go module
+    # STEP 2: NOW TEST THE GO MODULE (after bridge is built)
+    - name: Test Go module dependencies
       run: |
         go mod tidy
         go mod verify
@@ -129,8 +134,46 @@ jobs:
       if: matrix.os != 'windows-latest'
       env:
         CGO_ENABLED: 1
+        LD_LIBRARY_PATH: ${{ github.workspace }}/${{ matrix.lib_path }}:$LD_LIBRARY_PATH
+        DYLD_LIBRARY_PATH: ${{ github.workspace }}/${{ matrix.lib_path }}:$DYLD_LIBRARY_PATH
       run: |
+        echo "Library path set to: ${{ github.workspace }}/${{ matrix.lib_path }}"
         go test -v
+      shell: bash
+
+    # STEP 3: CREATE SHARED LIBRARY ARCHIVES FOR DOWNLOAD
+    - name: Create shared library archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir -p shared-libs/${{ matrix.archive_name }}
+        # Copy bridge DLL
+        copy "${{ matrix.bridge_output }}" shared-libs/${{ matrix.archive_name }}/
+        # Copy all Dynamsoft DLLs
+        copy dcv\lib\win\*.dll shared-libs\${{ matrix.archive_name }}\
+        # Create info file
+        echo "Platform: Windows x64" > shared-libs/${{ matrix.archive_name }}/README.txt
+        echo "Bridge Library: bridge.dll" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        echo "Dependencies: Dynamsoft Barcode Reader v11 DLLs" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        echo "Usage: Add this directory to your PATH before running Go applications" >> shared-libs/${{ matrix.archive_name }}/README.txt
+      shell: powershell
+
+    - name: Create shared library archive (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir -p shared-libs/${{ matrix.archive_name }}
+        # Copy bridge library
+        cp "${{ matrix.bridge_output }}" shared-libs/${{ matrix.archive_name }}/
+        # Copy all Dynamsoft libraries
+        cp ${{ matrix.lib_path }}/* shared-libs/${{ matrix.archive_name }}/ 2>/dev/null || true
+        # Create info file
+        echo "Platform: ${{ matrix.platform }}" > shared-libs/${{ matrix.archive_name }}/README.txt
+        echo "Bridge Library: $(basename ${{ matrix.bridge_output }})" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        echo "Dependencies: Dynamsoft Barcode Reader v11 libraries" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        if [ "${{ matrix.platform }}" = "linux" ]; then
+          echo "Usage: Add this directory to LD_LIBRARY_PATH" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        else
+          echo "Usage: Add this directory to DYLD_LIBRARY_PATH or use install_name_tool" >> shared-libs/${{ matrix.archive_name }}/README.txt
+        fi
       shell: bash
 
     - name: Prepare examples for CI testing (Windows)
@@ -164,6 +207,15 @@ jobs:
         go mod tidy
         go build -o web-server-${{ matrix.platform }} .
 
+    # STEP 4: UPLOAD ARTIFACTS WITH SHARED LIBRARIES
+    - name: Upload shared libraries
+      uses: actions/upload-artifact@v4
+      with:
+        name: shared-libraries-${{ matrix.archive_name }}
+        path: shared-libs/${{ matrix.archive_name }}/
+        retention-days: 90
+        if-no-files-found: warn
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -187,33 +239,116 @@ jobs:
       uses: actions/download-artifact@v4
       
     - name: Display structure of downloaded files
-      run: ls -la
+      run: |
+        echo "=== Downloaded Artifacts Structure ==="
+        find . -type f -name "*.dll" -o -name "*.so" -o -name "*.dylib" | head -20
+        echo "=== All artifacts ==="
+        ls -la
       
-    - name: Create Release Archive
+    - name: Create Shared Libraries Release Package
       run: |
-        mkdir -p release
-        # Copy bridge libraries
-        cp build-artifacts-*/dcv/lib/*/bridge.* release/ 2>/dev/null || true
-        cp build-artifacts-*/dcv/lib/*/Release/bridge.* release/ 2>/dev/null || true
-        # Copy example executables
-        cp build-artifacts-*/example/*/barcode-reader-* release/ 2>/dev/null || true
-        cp build-artifacts-*/example/*/web-server-* release/ 2>/dev/null || true
+        mkdir -p release/shared-libraries
         
-        # Create archive
-        tar -czf goBarcodeQrSDK-cross-platform.tar.gz release/
+        # Copy shared library archives
+        if [ -d "shared-libraries-windows-x64" ]; then
+          cp -r shared-libraries-windows-x64/* release/shared-libraries/ 2>/dev/null || true
+        fi
+        if [ -d "shared-libraries-linux-x64" ]; then
+          cp -r shared-libraries-linux-x64/* release/shared-libraries/ 2>/dev/null || true
+        fi
+        if [ -d "shared-libraries-macos-universal" ]; then
+          cp -r shared-libraries-macos-universal/* release/shared-libraries/ 2>/dev/null || true
+        fi
         
-    - name: Generate build info
+        # Create comprehensive README
+        cat > release/shared-libraries/USAGE.md << 'EOF'
+        # goBarcodeQrSDK Shared Libraries
+        
+        This package contains pre-built bridge libraries and Dynamsoft dependencies for all supported platforms.
+        
+        ## Platform-Specific Usage:
+        
+        ### Windows (x64)
+        - Bridge Library: `bridge.dll`
+        - Dependencies: All `Dynamsoft*.dll` files
+        - Usage: Add the directory containing these DLLs to your PATH environment variable
+        
+        ### Linux (x64)
+        - Bridge Library: `libbridge.so`
+        - Dependencies: All Dynamsoft `.so` files
+        - Usage: Add the directory to your LD_LIBRARY_PATH: `export LD_LIBRARY_PATH=/path/to/libs:$LD_LIBRARY_PATH`
+        
+        ### macOS (Universal)
+        - Bridge Library: `libbridge.dylib`
+        - Dependencies: All Dynamsoft `.dylib` files
+        - Usage: Add to DYLD_LIBRARY_PATH or use install_name_tool for permanent linking
+        
+        ## Integration with Go Projects:
+        
+        1. Download the appropriate shared libraries for your platform
+        2. Set up the library path as described above
+        3. Import the Go module: `go get github.com/yushulx/goBarcodeQrSDK/v2`
+        4. Use the SDK in your Go application
+        
+        For detailed examples, see: https://github.com/yushulx/goBarcodeQrSDK/tree/main/example
+        EOF
+        
+        # Create platform-specific archives
+        cd release
+        tar -czf goBarcodeQrSDK-shared-libraries-all-platforms.tar.gz shared-libraries/
+        cd ..
+        
+    - name: Create Build Info
       run: |
-        echo "Build Date: $(date)" > build-info.txt
-        echo "Commit: ${{ github.sha }}" >> build-info.txt
-        echo "Branch: ${{ github.ref_name }}" >> build-info.txt
-        echo "Platforms: Windows, Linux, macOS" >> build-info.txt
+        cat > release/BUILD-INFO.md << EOF
+        # Build Information
         
-    - name: Upload release archive
+        **Build Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        **Commit:** ${{ github.sha }}
+        **Branch:** ${{ github.ref_name }}
+        **Workflow:** ${{ github.workflow }}
+        **Run ID:** ${{ github.run_id }}
+        
+        ## Supported Platforms:
+        - Windows x64
+        - Linux x64  
+        - macOS Universal (x64/ARM64)
+        
+        ## Components Built:
+        - Bridge libraries (C++ to Go interface)
+        - Dynamsoft Barcode Reader v11 dependencies
+        - Command-line example applications
+        - Web server example applications
+        
+        ## SDK Features:
+        - Multi-page document support (PDF, TIFF)
+        - Page ID tracking for multi-page results
+        - Real-time camera barcode scanning
+        - Cross-platform compatibility
+        
+        ## Download Instructions:
+        1. Download the shared libraries archive for your platform
+        2. Extract to a directory of your choice
+        3. Set up library paths as described in USAGE.md
+        4. Use \`go get github.com/yushulx/goBarcodeQrSDK/v2\` in your project
+        EOF
+        
+    - name: Upload Shared Libraries Release
       uses: actions/upload-artifact@v4
       with:
-        name: cross-platform-release
+        name: goBarcodeQrSDK-shared-libraries-release
         path: |
-          goBarcodeQrSDK-cross-platform.tar.gz
-          build-info.txt
+          release/goBarcodeQrSDK-shared-libraries-all-platforms.tar.gz
+          release/BUILD-INFO.md
+          release/shared-libraries/USAGE.md
+        retention-days: 365  # Keep for 1 year
+        
+    - name: Upload Individual Platform Libraries
+      uses: actions/upload-artifact@v4
+      with:
+        name: platform-specific-libraries
+        path: |
+          shared-libraries-windows-x64/
+          shared-libraries-linux-x64/
+          shared-libraries-macos-universal/
         retention-days: 90
