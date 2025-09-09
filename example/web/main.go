@@ -44,12 +44,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(errMsg)
 	}
 	startTime := time.Now()
-	ret, barcodes := obj.DecodeStream(imgData)
+	barcodes, err := obj.DecodeStream(imgData)
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeStream() time cost: ", elapsed)
 
-	if ret != 0 {
-		fmt.Printf(`DecodeStream() = %d`, ret)
+	if err != nil {
+		fmt.Printf(`DecodeStream() failed: %v`, err)
+		http.Error(w, fmt.Sprintf("DecodeStream failed: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	defer goBarcodeQrSDK.DestroyBarcodeReader(obj)

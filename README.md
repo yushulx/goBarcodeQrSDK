@@ -196,49 +196,120 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/yushulx/goBarcodeQrSDK"
 )
 
 func main() {
-	ret, _ := goBarcodeQrSDK.InitLicense("LICENSE-KEY")
+	// Initialize license
+	ret, errMsg := goBarcodeQrSDK.InitLicense("LICENSE-KEY")
 	if ret != 0 {
-		fmt.Printf(`initLicense("") = %d`, ret)
+		fmt.Printf("License initialization failed: %d, %s\n", ret, errMsg)
 	}
+
+	// Create barcode reader
 	obj := goBarcodeQrSDK.CreateBarcodeReader()
+	defer goBarcodeQrSDK.DestroyBarcodeReader(obj)
+
+	// Load template (optional)
 	templateData, err := os.ReadFile("template.json")
 	if err != nil {
-		t.Fatalf("Failed to read template.json: %v", err)
+		fmt.Printf("Failed to read template.json: %v\n", err)
+	} else {
+		ret, errMsg := obj.SetParameters(string(templateData))
+		if ret != 0 {
+			fmt.Printf("SetParameters failed: %d, %s\n", ret, errMsg)
+		}
 	}
 
-	ret, _ := obj.SetParameters(string(templateData))
+	// Decode barcodes from file - NEW API follows Go conventions
 	startTime := time.Now()
-	code, barcodes := obj.DecodeFile("image-file")
+	barcodes, err := obj.DecodeFile("image-file")
 	elapsed := time.Since(startTime)
-	fmt.Println("DecodeFile() time cost: ", elapsed)
+	fmt.Println("DecodeFile() time cost:", elapsed)
 
-	if code != 0 {
-		fmt.Printf(`DecodeFile() = %d`, code)
+	if err != nil {
+		// Error might contain warnings, but barcodes could still be found
+		fmt.Printf("DecodeFile warning/error: %v\n", err)
+		if len(barcodes) == 0 {
+			fmt.Println("No barcodes found")
+			return
+		}
+		fmt.Printf("Found %d barcodes despite warning\n", len(barcodes))
 	}
 
-	for i := 0; i < len(barcodes); i++ {
-		barcode := barcodes[i]
-		fmt.Printf("Page ID: %d\n", barcode.PageId)  // Shows which page the barcode was found on
-		fmt.Println(barcode.Text)
-		fmt.Println(barcode.Format)
-		fmt.Println(barcode.X1)
-		fmt.Println(barcode.Y1)
-		fmt.Println(barcode.X2)
-		fmt.Println(barcode.Y2)
-		fmt.Println(barcode.X3)
-		fmt.Println(barcode.Y3)
-		fmt.Println(barcode.X4)
-		fmt.Println(barcode.Y4)
+	// Process results
+	for i, barcode := range barcodes {
+		fmt.Printf("\nBarcode %d:\n", i+1)
+		fmt.Printf("  Page ID: %d\n", barcode.PageId)  // Shows which page the barcode was found on
+		fmt.Printf("  Text: %s\n", barcode.Text)
+		fmt.Printf("  Format: %s\n", barcode.Format)
+		fmt.Printf("  Coordinates: (%d,%d) (%d,%d) (%d,%d) (%d,%d)\n",
+			barcode.X1, barcode.Y1, barcode.X2, barcode.Y2,
+			barcode.X3, barcode.Y3, barcode.X4, barcode.Y4)
+	}
+
+	// Alternative: Decode from memory
+	imageData, err := os.ReadFile("image-file")
+	if err == nil {
+		barcodes, err = obj.DecodeStream(imageData)
+		if err != nil {
+			fmt.Printf("DecodeStream error: %v\n", err)
+		} else {
+			fmt.Printf("DecodeStream found %d barcodes\n", len(barcodes))
+		}
 	}
 }
 
 ``` 
+
+## 📚 API Reference
+
+### Core Functions
+```go
+// License management
+ret, errMsg := goBarcodeQrSDK.InitLicense("LICENSE-KEY")
+
+// Reader lifecycle
+reader := goBarcodeQrSDK.CreateBarcodeReader()
+goBarcodeQrSDK.DestroyBarcodeReader(reader)
+
+// Get SDK version
+version := goBarcodeQrSDK.GetVersion()
+```
+
+### Configuration
+```go
+// Load settings from JSON string
+ret, errMsg := reader.SetParameters(jsonString)
+
+// Load settings from file
+ret, errMsg := reader.LoadTemplateFile("template.json")
+```
+
+### Barcode Detection
+```go
+// Decode from file
+barcodes, err := reader.DecodeFile("image.png")
+
+// Decode from memory buffer 
+barcodes, err := reader.DecodeStream(imageData)
+```
+
+### Barcode Result Structure
+```go
+type Barcode struct {
+    Text   string  // Decoded text content
+    Format string  // Barcode format (QR_CODE, CODE_128, etc.)
+    X1, Y1 int     // Top-left corner
+    X2, Y2 int     // Top-right corner  
+    X3, Y3 int     // Bottom-right corner
+    X4, Y4 int     // Bottom-left corner
+    PageId int     // Page number (for multi-page documents)
+}
+```
 
 ## Example
 - [Command-line](https://github.com/yushulx/goBarcodeQrSDK/tree/main/example/command-line)

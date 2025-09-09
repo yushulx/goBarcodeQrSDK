@@ -1,6 +1,8 @@
 package goBarcodeQrSDK
 
 import (
+	"errors"
+	"strings"
 	"unsafe"
 
 	/*
@@ -75,7 +77,7 @@ func (reader *BarcodeReader) LoadTemplateFile(params string) (int, string) {
 func (reader *BarcodeReader) processResults(resultArray *C.BarcodeResultArrayC) []Barcode {
 	var barcodes = []Barcode{}
 
-	if resultArray.count > 0 {
+	if resultArray != nil && resultArray.count > 0 {
 		// Convert C array to Go slice
 		results := (*[1 << 28]C.BarcodeResultC)(unsafe.Pointer(resultArray.results))[:resultArray.count:resultArray.count]
 
@@ -100,44 +102,72 @@ func (reader *BarcodeReader) processResults(resultArray *C.BarcodeResultArrayC) 
 		}
 	}
 
-	C.DBR_FreeTextResults(&resultArray)
+	if resultArray != nil {
+		C.DBR_FreeTextResults(&resultArray)
+	}
 	return barcodes
 }
 
-func (reader *BarcodeReader) DecodeFile(filePath string) (int, []Barcode) {
+func (reader *BarcodeReader) DecodeFile(filePath string) ([]Barcode, error) {
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
 
-	ret := C.DBR_DecodeFile(reader.handler, c_filePath)
-	if ret != 0 {
-		return int(ret), []Barcode{}
+	var resultArray *C.BarcodeResultArrayC
+	errorBuffer := make([]byte, 256)
+	ret := C.DBR_DecodeFile(reader.handler, c_filePath, &resultArray, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
+
+	// Process results even if there's a warning message
+	barcodes := reader.processResults(resultArray)
+
+	// Check for error message
+	errorMsg := strings.TrimRight(string(errorBuffer), "\x00")
+	if ret != 0 && len(barcodes) == 0 {
+		// Only return error if no barcodes were found
+		if errorMsg == "" {
+			errorMsg = "Decoding failed"
+		}
+		return barcodes, errors.New(errorMsg)
 	}
 
-	var resultArray *C.BarcodeResultArrayC
-	C.DBR_GetAllTextResults(reader.handler, &resultArray)
+	// Return barcodes with warning if applicable
+	if errorMsg != "" {
+		// Could log warning here: fmt.Println("Warning:", errorMsg)
+	}
 
-	barcodes := reader.processResults(resultArray)
-	return int(ret), barcodes
+	return barcodes, nil
 }
 
-func (reader *BarcodeReader) DecodeStream(data []byte) (int, []Barcode) {
+func (reader *BarcodeReader) DecodeStream(data []byte) ([]Barcode, error) {
 	if len(data) == 0 {
-		return -1, []Barcode{}
+		return []Barcode{}, errors.New("empty data buffer")
 	}
 
 	cData := (*C.uchar)(unsafe.Pointer(&data[0]))
 	length := C.int(len(data))
 
-	ret := C.DBR_DecodeFileInMemory(reader.handler, cData, length)
-	if ret != 0 {
-		return int(ret), []Barcode{}
+	var resultArray *C.BarcodeResultArrayC
+	errorBuffer := make([]byte, 256)
+	ret := C.DBR_DecodeFileInMemory(reader.handler, cData, length, &resultArray, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
+
+	// Process results even if there's a warning message
+	barcodes := reader.processResults(resultArray)
+
+	// Check for error message
+	errorMsg := strings.TrimRight(string(errorBuffer), "\x00")
+	if ret != 0 && len(barcodes) == 0 {
+		// Only return error if no barcodes were found
+		if errorMsg == "" {
+			errorMsg = "Decoding failed"
+		}
+		return barcodes, errors.New(errorMsg)
 	}
 
-	var resultArray *C.BarcodeResultArrayC
-	C.DBR_GetAllTextResults(reader.handler, &resultArray)
+	// Return barcodes with warning if applicable
+	if errorMsg != "" {
+		// Could log warning here: fmt.Println("Warning:", errorMsg)
+	}
 
-	barcodes := reader.processResults(resultArray)
-	return int(ret), barcodes
+	return barcodes, nil
 }
 
 // GetVersion func
