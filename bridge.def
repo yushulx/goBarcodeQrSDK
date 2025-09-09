@@ -7,5 +7,4 @@ DBR_InitRuntimeSettingsWithString
 DBR_InitRuntimeSettingsWithFile
 DBR_DecodeFile
 DBR_DecodeFileInMemory
-DBR_GetAllTextResults
 DBR_FreeTextResults
