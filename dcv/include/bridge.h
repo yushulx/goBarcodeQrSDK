@@ -36,9 +36,8 @@ extern "C"
     int DBR_InitRuntimeSettingsWithFile(void *instance, const char *fileName, int conflictMode, char *errorMsg, int errorMsgBufferLen);
 
     // Decoding functions
-    int DBR_DecodeFile(void *instance, const char *fileName);
-    int DBR_DecodeFileInMemory(void *instance, const unsigned char *buffer, int bufferLen);
-    int DBR_GetAllTextResults(void *instance, BarcodeResultArrayC **results);
+    int DBR_DecodeFile(void *instance, const char *fileName, BarcodeResultArrayC **results, char *errorMsg, int errorMsgBufferLen);
+    int DBR_DecodeFileInMemory(void *instance, const unsigned char *buffer, int bufferLen, BarcodeResultArrayC **results, char *errorMsg, int errorMsgBufferLen);
     void DBR_FreeTextResults(BarcodeResultArrayC **results);
 
 #ifdef __cplusplus

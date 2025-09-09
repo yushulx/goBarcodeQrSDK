@@ -100,14 +100,29 @@ extern "C"
         return ret;
     }
 
-    int DBR_DecodeFile(void *instance, const char *fileName)
+    int DBR_DecodeFile(void *instance, const char *fileName, BarcodeResultArrayC **results, char *errorMsg, int errorMsgSize)
     {
-        if (!instance || !fileName)
+        if (!instance || !fileName || !results)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Invalid instance, filename, or results pointer", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
+        }
 
+        *results = nullptr;
         BarcodeReaderInstance *inst = static_cast<BarcodeReaderInstance *>(instance);
         if (!inst->router)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Router not initialized", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
+        }
 
         // Release previous result
         if (inst->lastResultArray)
@@ -116,32 +131,163 @@ extern "C"
             inst->lastResultArray = nullptr;
         }
 
+        // Clear previous results
+        inst->results.clear();
+        inst->textStrings.clear();
+        inst->formatStrings.clear();
+
         try
         {
             CCapturedResultArray *captureResultArray = inst->router->CaptureMultiPages(fileName, CPresetTemplate::PT_READ_BARCODES);
             if (!captureResultArray)
+            {
+                if (errorMsg && errorMsgSize > 0)
+                {
+                    strncpy(errorMsg, "Failed to capture from file", errorMsgSize - 1);
+                    errorMsg[errorMsgSize - 1] = '\0';
+                }
                 return -1;
+            }
 
-            // Store the result array for later processing
-            inst->lastResultArray = captureResultArray;
-            inst->lastResultArray->Retain(); // Keep reference
+            std::string warningMessage = "";
+            int totalBarcodes = 0;
+            int pageCount = captureResultArray->GetResultsCount();
 
-            return 0;
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                CCapturedResult *pageResult = (CCapturedResult *)captureResultArray->GetResult(pageIndex);
+                if (!pageResult)
+                    continue;
+
+                // Get page ID from image tag, fallback to page index
+                int pageId = pageIndex;
+                if (pageResult->GetOriginalImageTag())
+                {
+                    int sdkPageId = pageResult->GetOriginalImageTag()->GetImageId();
+                    if (sdkPageId >= 0)
+                    {
+                        pageId = sdkPageId;
+                    }
+                }
+
+                // Collect warning messages but don't stop processing
+                if (pageResult->GetErrorCode() != EC_OK)
+                {
+                    if (!warningMessage.empty())
+                        warningMessage += "; ";
+                    warningMessage += "Page " + std::to_string(pageId) + ": " + pageResult->GetErrorString();
+                }
+
+                CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
+                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                {
+                    int barcodeCount = barcodeResult->GetItemsCount();
+
+                    for (int j = 0; j < barcodeCount; j++)
+                    {
+                        const CBarcodeResultItem *item = barcodeResult->GetItem(j);
+                        if (item)
+                        {
+                            BarcodeResultC result;
+
+                            // Store strings in vectors to ensure they persist
+                            inst->textStrings.push_back(std::string(item->GetText()));
+                            inst->formatStrings.push_back(std::string(item->GetFormatString()));
+
+                            result.text = const_cast<char *>(inst->textStrings.back().c_str());
+                            result.format = const_cast<char *>(inst->formatStrings.back().c_str());
+
+                            // Get location points
+                            CPoint *points = item->GetLocation().points;
+                            result.x1 = points[0][0];
+                            result.y1 = points[0][1];
+                            result.x2 = points[1][0];
+                            result.y2 = points[1][1];
+                            result.x3 = points[2][0];
+                            result.y3 = points[2][1];
+                            result.x4 = points[3][0];
+                            result.y4 = points[3][1];
+
+                            // Set page ID
+                            result.pageId = pageId;
+
+                            inst->results.push_back(result);
+                            totalBarcodes++;
+                        }
+                    }
+                }
+            }
+
+            captureResultArray->Release();
+
+            // Set warning message if any, even if we found barcodes
+            if (errorMsg && errorMsgSize > 0)
+            {
+                if (!warningMessage.empty())
+                {
+                    strncpy(errorMsg, warningMessage.c_str(), errorMsgSize - 1);
+                    errorMsg[errorMsgSize - 1] = '\0';
+                }
+                else
+                {
+                    errorMsg[0] = '\0'; // Clear error message on success
+                }
+            }
+
+            if (totalBarcodes > 0)
+            {
+                // Create result array with dynamic allocation
+                BarcodeResultArrayC *resultArray = new BarcodeResultArrayC();
+                resultArray->results = inst->results.data();
+                resultArray->count = inst->results.size();
+                *results = resultArray;
+            }
+
+            return totalBarcodes > 0 ? 0 : (warningMessage.empty() ? 0 : -1);
+        }
+        catch (const std::exception &e)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, e.what(), errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
+            return -1;
         }
         catch (...)
         {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Unknown error occurred", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
         }
     }
 
-    int DBR_DecodeFileInMemory(void *instance, const unsigned char *buffer, int bufferLen)
+    int DBR_DecodeFileInMemory(void *instance, const unsigned char *buffer, int bufferLen, BarcodeResultArrayC **results, char *errorMsg, int errorMsgSize)
     {
-        if (!instance || !buffer || bufferLen <= 0)
+        if (!instance || !buffer || bufferLen <= 0 || !results)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Invalid instance, buffer, buffer length, or results pointer", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
+        }
 
+        *results = nullptr;
         BarcodeReaderInstance *inst = static_cast<BarcodeReaderInstance *>(instance);
         if (!inst->router)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Router not initialized", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
+        }
 
         // Release previous results
         if (inst->lastResultArray)
@@ -150,32 +296,6 @@ extern "C"
             inst->lastResultArray = nullptr;
         }
 
-        try
-        {
-            CCapturedResultArray *captureResultArray = inst->router->CaptureMultiPages(buffer, bufferLen, CPresetTemplate::PT_READ_BARCODES);
-
-            if (!captureResultArray)
-                return -1;
-
-            // Store the result array for later processing
-            inst->lastResultArray = captureResultArray;
-            inst->lastResultArray->Retain(); // Keep reference
-
-            return 0;
-        }
-        catch (...)
-        {
-            return -1;
-        }
-    }
-
-    int DBR_GetAllTextResults(void *instance, BarcodeResultArrayC **results)
-    {
-        if (!instance || !results)
-            return -1;
-
-        BarcodeReaderInstance *inst = static_cast<BarcodeReaderInstance *>(instance);
-
         // Clear previous results
         inst->results.clear();
         inst->textStrings.clear();
@@ -183,95 +303,129 @@ extern "C"
 
         try
         {
-            int totalBarcodes = 0;
-
-            // Handle multi-page results (from CaptureMultiPages)
-            if (inst->lastResultArray)
+            CCapturedResultArray *captureResultArray = inst->router->CaptureMultiPages(buffer, bufferLen, CPresetTemplate::PT_READ_BARCODES);
+            if (!captureResultArray)
             {
-                int pageCount = inst->lastResultArray->GetResultsCount();
-
-                for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+                if (errorMsg && errorMsgSize > 0)
                 {
-                    CCapturedResult *pageResult = (CCapturedResult *)inst->lastResultArray->GetResult(pageIndex);
-                    if (!pageResult)
-                        continue;
+                    strncpy(errorMsg, "Failed to capture from memory", errorMsgSize - 1);
+                    errorMsg[errorMsgSize - 1] = '\0';
+                }
+                return -1;
+            }
 
-                    // Get page ID from image tag, fallback to page index
-                    int pageId = pageIndex;
-                    if (pageResult->GetOriginalImageTag())
+            std::string warningMessage = "";
+            int totalBarcodes = 0;
+            int pageCount = captureResultArray->GetResultsCount();
+
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                CCapturedResult *pageResult = (CCapturedResult *)captureResultArray->GetResult(pageIndex);
+                if (!pageResult)
+                    continue;
+
+                // Get page ID from image tag, fallback to page index
+                int pageId = pageIndex;
+                if (pageResult->GetOriginalImageTag())
+                {
+                    int sdkPageId = pageResult->GetOriginalImageTag()->GetImageId();
+                    if (sdkPageId >= 0)
                     {
-                        int sdkPageId = pageResult->GetOriginalImageTag()->GetImageId();
-                        if (sdkPageId >= 0)
-                        {
-                            pageId = sdkPageId;
-                        }
+                        pageId = sdkPageId;
                     }
+                }
 
-                    if (pageResult->GetErrorCode() != EC_OK)
+                // Collect warning messages but don't stop processing
+                if (pageResult->GetErrorCode() != EC_OK)
+                {
+                    if (!warningMessage.empty())
+                        warningMessage += "; ";
+                    warningMessage += "Page " + std::to_string(pageId) + ": " + pageResult->GetErrorString();
+                }
+
+                CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
+                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                {
+                    int barcodeCount = barcodeResult->GetItemsCount();
+
+                    for (int j = 0; j < barcodeCount; j++)
                     {
-                        std::cout << "Error on page " << pageId << ": " << pageResult->GetErrorCode()
-                                  << ", " << pageResult->GetErrorString() << std::endl;
-                        continue;
-                    }
-
-                    CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
-                    if (barcodeResult && barcodeResult->GetItemsCount() > 0)
-                    {
-                        int barcodeCount = barcodeResult->GetItemsCount();
-
-                        for (int j = 0; j < barcodeCount; j++)
+                        const CBarcodeResultItem *item = barcodeResult->GetItem(j);
+                        if (item)
                         {
-                            const CBarcodeResultItem *item = barcodeResult->GetItem(j);
-                            if (item)
-                            {
-                                BarcodeResultC result;
+                            BarcodeResultC result;
 
-                                // Store strings in vectors to ensure they persist
-                                inst->textStrings.push_back(std::string(item->GetText()));
-                                inst->formatStrings.push_back(std::string(item->GetFormatString()));
+                            // Store strings in vectors to ensure they persist
+                            inst->textStrings.push_back(std::string(item->GetText()));
+                            inst->formatStrings.push_back(std::string(item->GetFormatString()));
 
-                                result.text = const_cast<char *>(inst->textStrings.back().c_str());
-                                result.format = const_cast<char *>(inst->formatStrings.back().c_str());
+                            result.text = const_cast<char *>(inst->textStrings.back().c_str());
+                            result.format = const_cast<char *>(inst->formatStrings.back().c_str());
 
-                                // Get location points
-                                CPoint *points = item->GetLocation().points;
-                                result.x1 = points[0][0];
-                                result.y1 = points[0][1];
-                                result.x2 = points[1][0];
-                                result.y2 = points[1][1];
-                                result.x3 = points[2][0];
-                                result.y3 = points[2][1];
-                                result.x4 = points[3][0];
-                                result.y4 = points[3][1];
+                            // Get location points
+                            CPoint *points = item->GetLocation().points;
+                            result.x1 = points[0][0];
+                            result.y1 = points[0][1];
+                            result.x2 = points[1][0];
+                            result.y2 = points[1][1];
+                            result.x3 = points[2][0];
+                            result.y3 = points[2][1];
+                            result.x4 = points[3][0];
+                            result.y4 = points[3][1];
 
-                                // Set page ID
-                                result.pageId = pageId;
+                            // Set page ID
+                            result.pageId = pageId;
 
-                                inst->results.push_back(result);
-                                totalBarcodes++;
-                            }
+                            inst->results.push_back(result);
+                            totalBarcodes++;
                         }
                     }
                 }
             }
 
-            if (totalBarcodes == 0)
+            captureResultArray->Release();
+
+            // Set warning message if any, even if we found barcodes
+            if (errorMsg && errorMsgSize > 0)
             {
-                *results = nullptr;
-                return 0;
+                if (!warningMessage.empty())
+                {
+                    strncpy(errorMsg, warningMessage.c_str(), errorMsgSize - 1);
+                    errorMsg[errorMsgSize - 1] = '\0';
+                }
+                else
+                {
+                    errorMsg[0] = '\0'; // Clear error message on success
+                }
             }
 
-            // Create result array with dynamic allocation
-            BarcodeResultArrayC *resultArray = new BarcodeResultArrayC();
-            resultArray->results = inst->results.data();
-            resultArray->count = inst->results.size();
+            if (totalBarcodes > 0)
+            {
+                // Create result array with dynamic allocation
+                BarcodeResultArrayC *resultArray = new BarcodeResultArrayC();
+                resultArray->results = inst->results.data();
+                resultArray->count = inst->results.size();
+                *results = resultArray;
+            }
 
-            *results = resultArray;
-            return 0;
+            return totalBarcodes > 0 ? 0 : (warningMessage.empty() ? 0 : -1);
+        }
+        catch (const std::exception &e)
+        {
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, e.what(), errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
+            return -1;
         }
         catch (...)
         {
-            *results = nullptr;
+            if (errorMsg && errorMsgSize > 0)
+            {
+                strncpy(errorMsg, "Unknown error occurred", errorMsgSize - 1);
+                errorMsg[errorMsgSize - 1] = '\0';
+            }
             return -1;
         }
     }

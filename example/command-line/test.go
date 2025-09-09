@@ -54,12 +54,13 @@ func main() {
 		fmt.Println(errMsg)
 	}
 	startTime := time.Now()
-	ret, barcodes := obj.DecodeFile(filename)
+	barcodes, err := obj.DecodeFile(filename)
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
-	if ret != 0 {
-		fmt.Printf(`DecodeFile() = %d`, ret)
+	if err != nil {
+		fmt.Printf(`DecodeFile() failed: %v`, err)
+		return
 	}
 
 	for i := 0; i < len(barcodes); i++ {

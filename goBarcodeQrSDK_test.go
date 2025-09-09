@@ -59,9 +59,9 @@ func TestDecodeFile(t *testing.T) {
 	}
 
 	obj.SetParameters(string(templateData))
-	ret, _ := obj.DecodeFile("test.png")
-	if ret != 0 {
-		t.Fatalf(`DecodeFile() = %d`, ret)
+	_, err = obj.DecodeFile("test.png")
+	if err != nil {
+		t.Fatalf(`DecodeFile() failed: %v`, err)
 	}
 }
 
@@ -80,12 +80,12 @@ func TestApp(t *testing.T) {
 
 	obj.SetParameters(string(templateData))
 	startTime := time.Now()
-	code, barcodes := obj.DecodeFile("test.png")
+	barcodes, err := obj.DecodeFile("test.png")
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
-	if code != 0 {
-		t.Fatalf(`DecodeFile() = %d`, code)
+	if err != nil {
+		t.Fatalf(`DecodeFile() failed: %v`, err)
 	}
 
 	for _, barcode := range barcodes {
@@ -122,9 +122,9 @@ func TestDecodeStream(t *testing.T) {
 		t.Fatalf("Unable to read file: %v", err)
 	}
 
-	ret, barcodes := obj.DecodeStream(data)
-	if ret != 0 {
-		t.Fatalf(`DecodeFile() = %d`, ret)
+	barcodes, err := obj.DecodeStream(data)
+	if err != nil {
+		t.Fatalf(`DecodeStream() failed: %v`, err)
 	}
 
 	for _, barcode := range barcodes {
