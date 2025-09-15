@@ -153,9 +153,30 @@ extern "C"
             int totalBarcodes = 0;
             int pageCount = captureResultArray->GetResultsCount();
 
+            // First pass: count total barcodes to reserve vector capacity
+            int estimatedBarcodeCount = 0;
             for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
             {
-                CCapturedResult *pageResult = (CCapturedResult *)captureResultArray->GetResult(pageIndex);
+                const CCapturedResult *pageResult = captureResultArray->GetResult(pageIndex);
+                if (!pageResult)
+                    continue;
+
+                CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
+                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                {
+                    estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                }
+            }
+
+            // Reserve capacity to prevent reallocation
+            inst->textStrings.reserve(estimatedBarcodeCount);
+            inst->formatStrings.reserve(estimatedBarcodeCount);
+            inst->results.reserve(estimatedBarcodeCount);
+
+            // Second pass: process barcodes
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                const CCapturedResult *pageResult = captureResultArray->GetResult(pageIndex);
                 if (!pageResult)
                     continue;
 
@@ -191,22 +212,34 @@ extern "C"
                             BarcodeResultC result;
 
                             // Store strings in vectors to ensure they persist
-                            inst->textStrings.push_back(std::string(item->GetText()));
-                            inst->formatStrings.push_back(std::string(item->GetFormatString()));
+                            const char *textPtr = item->GetText();
+                            const char *formatPtr = item->GetFormatString();
 
-                            result.text = const_cast<char *>(inst->textStrings.back().c_str());
-                            result.format = const_cast<char *>(inst->formatStrings.back().c_str());
+                            // Store both strings first to avoid vector reallocation issues
+                            std::string textStr = textPtr ? std::string(textPtr) : "";
+                            std::string formatStr = formatPtr ? std::string(formatPtr) : "";
+
+                            // Reserve space to avoid reallocation during this loop
+                            size_t currentTextIndex = inst->textStrings.size();
+                            size_t currentFormatIndex = inst->formatStrings.size();
+
+                            inst->textStrings.push_back(textStr);
+                            inst->formatStrings.push_back(formatStr);
+
+                            // Use indexed access to avoid invalidation
+                            result.text = const_cast<char *>(inst->textStrings[currentTextIndex].c_str());
+                            result.format = const_cast<char *>(inst->formatStrings[currentFormatIndex].c_str());
 
                             // Get location points
-                            CPoint *points = item->GetLocation().points;
-                            result.x1 = points[0][0];
-                            result.y1 = points[0][1];
-                            result.x2 = points[1][0];
-                            result.y2 = points[1][1];
-                            result.x3 = points[2][0];
-                            result.y3 = points[2][1];
-                            result.x4 = points[3][0];
-                            result.y4 = points[3][1];
+                            CQuadrilateral location = item->GetLocation();
+                            result.x1 = location.points[0][0];
+                            result.y1 = location.points[0][1];
+                            result.x2 = location.points[1][0];
+                            result.y2 = location.points[1][1];
+                            result.x3 = location.points[2][0];
+                            result.y3 = location.points[2][1];
+                            result.x4 = location.points[3][0];
+                            result.y4 = location.points[3][1];
 
                             // Set page ID
                             result.pageId = pageId;
@@ -318,9 +351,30 @@ extern "C"
             int totalBarcodes = 0;
             int pageCount = captureResultArray->GetResultsCount();
 
+            // First pass: count total barcodes to reserve vector capacity
+            int estimatedBarcodeCount = 0;
             for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
             {
-                CCapturedResult *pageResult = (CCapturedResult *)captureResultArray->GetResult(pageIndex);
+                const CCapturedResult *pageResult = captureResultArray->GetResult(pageIndex);
+                if (!pageResult)
+                    continue;
+
+                CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
+                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                {
+                    estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                }
+            }
+
+            // Reserve capacity to prevent reallocation
+            inst->textStrings.reserve(estimatedBarcodeCount);
+            inst->formatStrings.reserve(estimatedBarcodeCount);
+            inst->results.reserve(estimatedBarcodeCount);
+
+            // Second pass: process barcodes
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+            {
+                const CCapturedResult *pageResult = captureResultArray->GetResult(pageIndex);
                 if (!pageResult)
                     continue;
 
@@ -356,22 +410,34 @@ extern "C"
                             BarcodeResultC result;
 
                             // Store strings in vectors to ensure they persist
-                            inst->textStrings.push_back(std::string(item->GetText()));
-                            inst->formatStrings.push_back(std::string(item->GetFormatString()));
+                            const char *textPtr = item->GetText();
+                            const char *formatPtr = item->GetFormatString();
 
-                            result.text = const_cast<char *>(inst->textStrings.back().c_str());
-                            result.format = const_cast<char *>(inst->formatStrings.back().c_str());
+                            // Store both strings first to avoid vector reallocation issues
+                            std::string textStr = textPtr ? std::string(textPtr) : "";
+                            std::string formatStr = formatPtr ? std::string(formatPtr) : "";
+
+                            // Reserve space to avoid reallocation during this loop
+                            size_t currentTextIndex = inst->textStrings.size();
+                            size_t currentFormatIndex = inst->formatStrings.size();
+
+                            inst->textStrings.push_back(textStr);
+                            inst->formatStrings.push_back(formatStr);
+
+                            // Use indexed access to avoid invalidation
+                            result.text = const_cast<char *>(inst->textStrings[currentTextIndex].c_str());
+                            result.format = const_cast<char *>(inst->formatStrings[currentFormatIndex].c_str());
 
                             // Get location points
-                            CPoint *points = item->GetLocation().points;
-                            result.x1 = points[0][0];
-                            result.y1 = points[0][1];
-                            result.x2 = points[1][0];
-                            result.y2 = points[1][1];
-                            result.x3 = points[2][0];
-                            result.y3 = points[2][1];
-                            result.x4 = points[3][0];
-                            result.y4 = points[3][1];
+                            CQuadrilateral location = item->GetLocation();
+                            result.x1 = location.points[0][0];
+                            result.y1 = location.points[0][1];
+                            result.x2 = location.points[1][0];
+                            result.y2 = location.points[1][1];
+                            result.x3 = location.points[2][0];
+                            result.y3 = location.points[2][1];
+                            result.x4 = location.points[3][0];
+                            result.y4 = location.points[3][1];
 
                             // Set page ID
                             result.pageId = pageId;
