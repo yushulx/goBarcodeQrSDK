@@ -80,7 +80,7 @@ func TestApp(t *testing.T) {
 
 	obj.SetParameters(string(templateData))
 	startTime := time.Now()
-	barcodes, err := obj.DecodeFile("test.png")
+	barcodes, err := obj.DecodeFile("test_multi.pdf")
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
@@ -117,7 +117,7 @@ func TestDecodeStream(t *testing.T) {
 	}
 
 	obj.SetParameters(string(templateData))
-	data, err := os.ReadFile("test.png")
+	data, err := os.ReadFile("test_multi.pdf")
 	if err != nil {
 		t.Fatalf("Unable to read file: %v", err)
 	}
