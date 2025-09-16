@@ -11,6 +11,16 @@ This directory contains build scripts for all supported platforms.
 
 ### Linux/macOS
 ```bash
+# Linux
+./scripts/build.sh
+
+# macOS (single architecture)
+./scripts/build_macos.sh
+
+# macOS Universal Binary (recommended)
+./scripts/build_macos_universal.sh
+
+# Cross-platform universal script
 ./scripts/build_universal.sh
 ```
 
@@ -61,6 +71,7 @@ This directory contains build scripts for all supported platforms.
   - Builds bridge library using Clang
   - Sets proper DYLD_LIBRARY_PATH for testing
   - Handles macOS-specific linking
+  - Builds for current system architecture only
 
 **Usage:**
 ```bash
@@ -72,6 +83,26 @@ This directory contains build scripts for all supported platforms.
 
 # Debug build
 ./scripts/build_macos.sh --debug
+```
+
+### macOS Universal (`build_macos_universal.sh`)
+- **Requirements**: Xcode Command Line Tools, CMake, Go, lipo
+- **Features**:
+  - Builds bridge library for both ARM64 and x86_64
+  - Creates universal binary using `lipo`
+  - Tests compatibility on current system
+  - **Recommended for distribution**
+
+**Usage:**
+```bash
+# Basic universal build
+./scripts/build_macos_universal.sh
+
+# Clean universal build
+./scripts/build_macos_universal.sh --clean
+
+# Debug universal build
+./scripts/build_macos_universal.sh --debug --verbose
 ```
 
 ### Universal (`build_universal.sh`)
@@ -104,7 +135,9 @@ After successful build, you'll find:
 - Desktop app: `example/desktop/barcode-scanner-simple`
 
 ### macOS
-- Bridge library: `dcv/lib/mac/libbridge.dylib`
+- Bridge library: `dcv/lib/mac/libbridge.dylib` (Universal binary: ARM64 + x86_64)
 - Command-line tool: `example/command-line/barcode-reader`
 - Web server: `example/web/web-server`
 - Desktop app: `example/desktop/barcode-scanner-simple`
+
+**Note**: When using `build_macos_universal.sh`, the resulting `libbridge.dylib` is a universal binary that works on both Apple Silicon and Intel Macs.

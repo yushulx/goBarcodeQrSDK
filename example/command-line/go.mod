@@ -2,6 +2,6 @@ module example.com/test
 
 go 1.19
 
-require github.com/yushulx/goBarcodeQrSDK/v2 v2.0.4
+require github.com/yushulx/goBarcodeQrSDK/v2 v2.0.5
 
-replace github.com/yushulx/goBarcodeQrSDK/v2 v2.0.4 => ../../
+replace github.com/yushulx/goBarcodeQrSDK/v2 v2.0.5 => ../../

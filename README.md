@@ -26,10 +26,17 @@ Use the provided build scripts to automatically build the bridge library:
 # Windows (PowerShell)
 .\scripts\build.ps1
 
-# Linux/macOS
-./scripts/build.sh          # For Linux
-./scripts/build_macos.sh    # For macOS
+# Linux
+./scripts/build.sh
+
+# macOS (single architecture - current system)
+./scripts/build_macos.sh
+
+# macOS Universal Binary (ARM64 + x86_64)
+./scripts/build_macos_universal.sh
 ```
+
+**Note for macOS**: Use `build_macos_universal.sh` to create a universal binary that works on both Apple Silicon (M1/M2/M3) and Intel Macs. This is recommended for distribution.
 
 ### Manual Build Process
 If you prefer to build manually or need to customize the build:
@@ -66,7 +73,7 @@ If you prefer to build manually or need to customize the build:
 ## Supported Platforms
 - Windows (x64)
 - Linux (x64)
-- macOS (x64/ARM64)
+- macOS (x64/ARM64) - Universal binary support for both Intel and Apple Silicon Macs
 
 ## Test the Module
 
