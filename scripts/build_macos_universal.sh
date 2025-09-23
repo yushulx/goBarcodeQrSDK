@@ -129,13 +129,32 @@ fi
 
 # Copy ARM64 library to temporary location
 cp "$ARM64_LIB" "libbridge_arm64.dylib"
+
+# Verify ARM64 architecture
+write_status "Verifying ARM64 build..."
+ARM64_ARCH=$(lipo -info "libbridge_arm64.dylib" 2>/dev/null || echo "Failed to get architecture info")
+echo "  ARM64 build: $ARM64_ARCH"
+
 write_success "ARM64 build completed"
 
 # Build for x86_64 (Intel Macs)
 write_status "Building for x86_64 (Intel Macs)..."
 cd build_x86_64
 
-CMAKE_ARGS=(".." "-DCMAKE_OSX_ARCHITECTURES=x86_64")
+# Set environment for x86_64 cross-compilation
+export CFLAGS="-arch x86_64"
+export CXXFLAGS="-arch x86_64"
+export LDFLAGS="-arch x86_64"
+
+# Force x86_64 compilation with additional flags
+CMAKE_ARGS=(".." 
+    "-DCMAKE_OSX_ARCHITECTURES=x86_64"
+    "-DCMAKE_C_FLAGS=-arch x86_64"
+    "-DCMAKE_CXX_FLAGS=-arch x86_64"
+    "-DCMAKE_EXE_LINKER_FLAGS=-arch x86_64"
+    "-DCMAKE_SHARED_LINKER_FLAGS=-arch x86_64"
+    "-DCMAKE_OSX_DEPLOYMENT_TARGET=12.0"
+)
 if [ "$VERBOSE" = true ]; then
     CMAKE_ARGS+=(--verbose)
 fi
@@ -152,6 +171,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Clean up environment variables
+unset CFLAGS CXXFLAGS LDFLAGS
+
 cd ..
 
 # Verify x86_64 library was created
@@ -163,6 +185,30 @@ fi
 
 # Copy x86_64 library to temporary location
 cp "$X86_64_LIB" "libbridge_x86_64.dylib"
+
+# Verify x86_64 architecture
+write_status "Verifying x86_64 build..."
+X86_64_ARCH=$(lipo -info "libbridge_x86_64.dylib" 2>/dev/null || echo "Failed to get architecture info")
+echo "  x86_64 build: $X86_64_ARCH"
+
+# Check if both files have different architectures before attempting lipo
+if [[ "$ARM64_ARCH" == "$X86_64_ARCH" ]]; then
+    write_error "Both builds have the same architecture. Cross-compilation failed."
+    echo "  ARM64 build:  $ARM64_ARCH"
+    echo "  x86_64 build: $X86_64_ARCH"
+    echo ""
+    write_warning "This may happen if:"
+    echo "  1. Running on Apple Silicon Mac without Rosetta 2"
+    echo "  2. CMake not properly configured for cross-compilation"
+    echo "  3. Xcode Command Line Tools not supporting x86_64 cross-compilation"
+    echo ""
+    echo "To fix this issue:"
+    echo "  1. Install Rosetta 2: softwareupdate --install-rosetta"
+    echo "  2. Ensure Xcode Command Line Tools are up to date"
+    echo "  3. Try running this script with: arch -x86_64 ./scripts/build_macos_universal.sh"
+    exit 1
+fi
+
 write_success "x86_64 build completed"
 
 # Create universal binary using lipo
