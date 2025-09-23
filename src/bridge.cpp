@@ -184,10 +184,12 @@ extern "C"
                 int pageId = pageIndex;
                 if (pageResult->GetOriginalImageTag())
                 {
-                    int sdkPageId = pageResult->GetOriginalImageTag()->GetImageId();
-                    if (sdkPageId >= 0)
+                    CFileImageTag *imageTag = (CFileImageTag *)pageResult->GetOriginalImageTag();
+                    int pageNumber = imageTag->GetPageNumber();
+                    // printf("pageId: %d, Page number: %d\n", pageId, pageNumber);
+                    if (pageNumber >= 0)
                     {
-                        pageId = sdkPageId;
+                        pageId = pageNumber;
                     }
                 }
 
