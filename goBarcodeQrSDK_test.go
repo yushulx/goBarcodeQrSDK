@@ -140,3 +140,46 @@ func TestDecodeStream(t *testing.T) {
 		fmt.Println(barcode.Y4)
 	}
 }
+func TestDecodeFileParallel(t *testing.T) {
+	InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
+
+	t.Run("Parallel", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			i := i // Capture loop variable for parallel execution
+			t.Run(fmt.Sprintf("Routine-%d", i), func(t *testing.T) {
+				t.Parallel()
+				fmt.Println("Routine", i)
+				obj := CreateBarcodeReader()
+				// Load template.json file content
+				templateData, err := os.ReadFile("template.json")
+				if err != nil {
+					t.Fatalf("Failed to read template.json: %v", err)
+				}
+
+				obj.SetParameters(string(templateData))
+				data, err := os.ReadFile("test_multi.pdf")
+				if err != nil {
+					t.Fatalf("Unable to read file: %v", err)
+				}
+
+				barcodes, err := obj.DecodeStream(data)
+				if err != nil {
+					t.Fatalf(`DecodeStream() failed: %v`, err)
+				}
+				for _, barcode := range barcodes {
+					fmt.Println(barcode.Text)
+					fmt.Println(barcode.Format)
+					fmt.Println(barcode.X1)
+					fmt.Println(barcode.Y1)
+					fmt.Println(barcode.X2)
+					fmt.Println(barcode.Y2)
+					fmt.Println(barcode.X3)
+					fmt.Println(barcode.Y3)
+					fmt.Println(barcode.X4)
+					fmt.Println(barcode.Y4)
+				}
+				DestroyBarcodeReader(obj)
+			})
+		}
+	})
+}
