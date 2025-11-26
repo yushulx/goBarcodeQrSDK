@@ -144,7 +144,7 @@ func TestDecodeFileParallel(t *testing.T) {
 	InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
 
 	t.Run("Parallel", func(t *testing.T) {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 20; i++ {
 			i := i // Capture loop variable for parallel execution
 			t.Run(fmt.Sprintf("Routine-%d", i), func(t *testing.T) {
 				t.Parallel()
@@ -162,7 +162,11 @@ func TestDecodeFileParallel(t *testing.T) {
 					t.Fatalf("Unable to read file: %v", err)
 				}
 
+				startTime := time.Now()
 				barcodes, err := obj.DecodeStream(data)
+				elapsed := time.Since(startTime)
+				fmt.Printf("Routine-%d DecodeStream() time cost: %v\n", i, elapsed)
+
 				if err != nil {
 					t.Fatalf(`DecodeStream() failed: %v`, err)
 				}

@@ -3,7 +3,6 @@ package goBarcodeQrSDK
 import (
 	"errors"
 	"strings"
-	"sync"
 	"unsafe"
 
 	/*
@@ -16,10 +15,6 @@ import (
 	*/
 	"C"
 )
-
-// Global mutex to serialize access to the C library
-// The underlying C SDK is not thread-safe even with separate instances
-var decodeMutex sync.Mutex
 
 type Barcode struct {
 	Text   string
@@ -117,11 +112,9 @@ func (reader *BarcodeReader) DecodeFile(filePath string) ([]Barcode, error) {
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
 
-	decodeMutex.Lock()
 	var resultArray *C.BarcodeResultArrayC
 	errorBuffer := make([]byte, 256)
 	ret := C.DBR_DecodeFile(reader.handler, c_filePath, &resultArray, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
-	decodeMutex.Unlock()
 
 	// Process results even if there's a warning message
 	barcodes := reader.processResults(resultArray)
@@ -152,11 +145,9 @@ func (reader *BarcodeReader) DecodeStream(data []byte) ([]Barcode, error) {
 	cData := (*C.uchar)(unsafe.Pointer(&data[0]))
 	length := C.int(len(data))
 
-	decodeMutex.Lock()
 	var resultArray *C.BarcodeResultArrayC
 	errorBuffer := make([]byte, 256)
 	ret := C.DBR_DecodeFileInMemory(reader.handler, cData, length, &resultArray, (*C.char)(unsafe.Pointer(&errorBuffer[0])), C.int(len(errorBuffer)))
-	decodeMutex.Unlock()
 
 	// Process results even if there's a warning message
 	barcodes := reader.processResults(resultArray)
