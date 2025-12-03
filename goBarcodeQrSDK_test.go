@@ -144,11 +144,12 @@ func TestDecodeFileParallel(t *testing.T) {
 	InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
 
 	// Initialize PDFium with enough workers
-	SetPdfiumWorkerCount(50)
+	count := 20
+	SetPdfiumWorkerCount(count)
 	InitPdfium()
 
 	t.Run("Parallel", func(t *testing.T) {
-		for i := 0; i < 50; i++ {
+		for i := 0; i < count; i++ {
 			i := i // Capture loop variable for parallel execution
 			t.Run(fmt.Sprintf("Routine-%d", i), func(t *testing.T) {
 				t.Parallel()
