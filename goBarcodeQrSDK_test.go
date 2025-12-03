@@ -80,7 +80,7 @@ func TestApp(t *testing.T) {
 
 	obj.SetParameters(string(templateData))
 	startTime := time.Now()
-	barcodes, err := obj.DecodeFile("test_multi.pdf")
+	_, err = obj.DecodeFile("test_multi.pdf")
 	elapsed := time.Since(startTime)
 	fmt.Println("DecodeFile() time cost: ", elapsed)
 
@@ -88,18 +88,18 @@ func TestApp(t *testing.T) {
 		t.Fatalf(`DecodeFile() failed: %v`, err)
 	}
 
-	for _, barcode := range barcodes {
-		fmt.Println(barcode.Text)
-		fmt.Println(barcode.Format)
-		fmt.Println(barcode.X1)
-		fmt.Println(barcode.Y1)
-		fmt.Println(barcode.X2)
-		fmt.Println(barcode.Y2)
-		fmt.Println(barcode.X3)
-		fmt.Println(barcode.Y3)
-		fmt.Println(barcode.X4)
-		fmt.Println(barcode.Y4)
-	}
+	// for _, barcode := range barcodes {
+	// 	fmt.Println(barcode.Text)
+	// 	fmt.Println(barcode.Format)
+	// 	fmt.Println(barcode.X1)
+	// 	fmt.Println(barcode.Y1)
+	// 	fmt.Println(barcode.X2)
+	// 	fmt.Println(barcode.Y2)
+	// 	fmt.Println(barcode.X3)
+	// 	fmt.Println(barcode.Y3)
+	// 	fmt.Println(barcode.X4)
+	// 	fmt.Println(barcode.Y4)
+	// }
 }
 
 func TestGetVersion(t *testing.T) {
@@ -143,12 +143,15 @@ func TestDecodeStream(t *testing.T) {
 func TestDecodeFileParallel(t *testing.T) {
 	InitLicense("DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==")
 
+	// Initialize PDFium with enough workers
+	SetPdfiumWorkerCount(50)
+	InitPdfium()
+
 	t.Run("Parallel", func(t *testing.T) {
-		for i := 0; i < 20; i++ {
+		for i := 0; i < 50; i++ {
 			i := i // Capture loop variable for parallel execution
 			t.Run(fmt.Sprintf("Routine-%d", i), func(t *testing.T) {
 				t.Parallel()
-				fmt.Println("Routine", i)
 				obj := CreateBarcodeReader()
 				// Load template.json file content
 				templateData, err := os.ReadFile("template.json")
@@ -165,23 +168,23 @@ func TestDecodeFileParallel(t *testing.T) {
 				startTime := time.Now()
 				barcodes, err := obj.DecodeStream(data)
 				elapsed := time.Since(startTime)
-				fmt.Printf("Routine-%d DecodeStream() time cost: %v\n", i, elapsed)
+				fmt.Printf("Routine-%d DecodeStream() time cost: %v, Barcode count: %d\n", i, elapsed, len(barcodes))
 
 				if err != nil {
 					t.Fatalf(`DecodeStream() failed: %v`, err)
 				}
-				for _, barcode := range barcodes {
-					fmt.Println(barcode.Text)
-					fmt.Println(barcode.Format)
-					fmt.Println(barcode.X1)
-					fmt.Println(barcode.Y1)
-					fmt.Println(barcode.X2)
-					fmt.Println(barcode.Y2)
-					fmt.Println(barcode.X3)
-					fmt.Println(barcode.Y3)
-					fmt.Println(barcode.X4)
-					fmt.Println(barcode.Y4)
-				}
+				// for _, barcode := range barcodes {
+				// 	fmt.Println(barcode.Text)
+				// 	fmt.Println(barcode.Format)
+				// 	fmt.Println(barcode.X1)
+				// 	fmt.Println(barcode.Y1)
+				// 	fmt.Println(barcode.X2)
+				// 	fmt.Println(barcode.Y2)
+				// 	fmt.Println(barcode.X3)
+				// 	fmt.Println(barcode.Y3)
+				// 	fmt.Println(barcode.X4)
+				// 	fmt.Println(barcode.Y4)
+				// }
 				DestroyBarcodeReader(obj)
 			})
 		}

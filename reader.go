@@ -109,6 +109,10 @@ func (reader *BarcodeReader) processResults(resultArray *C.BarcodeResultArrayC) 
 }
 
 func (reader *BarcodeReader) DecodeFile(filePath string) ([]Barcode, error) {
+	if strings.HasSuffix(strings.ToLower(filePath), ".pdf") {
+		return reader.DecodePDF(filePath)
+	}
+
 	c_filePath := C.CString(filePath)
 	defer C.free(unsafe.Pointer(c_filePath))
 
@@ -140,6 +144,11 @@ func (reader *BarcodeReader) DecodeFile(filePath string) ([]Barcode, error) {
 func (reader *BarcodeReader) DecodeStream(data []byte) ([]Barcode, error) {
 	if len(data) == 0 {
 		return []Barcode{}, errors.New("empty data buffer")
+	}
+
+	// Check for PDF signature
+	if len(data) > 4 && string(data[:4]) == "%PDF" {
+		return reader.DecodePDFStream(data)
 	}
 
 	cData := (*C.uchar)(unsafe.Pointer(&data[0]))
