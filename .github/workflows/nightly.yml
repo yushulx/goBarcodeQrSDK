@@ -64,7 +64,7 @@ jobs:
         go test -v
       env:
         CGO_ENABLED: 1
-        CC: ${{ matrix.os == 'windows-latest' && 'C:\msys64\mingw64\bin\gcc.exe' || '' }}
+        CC: ${{ matrix.os == 'windows-latest' && 'gcc' || '' }}
         GOCACHE: ${{ runner.temp }}/gocache
       shell: bash
 

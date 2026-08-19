@@ -37,7 +37,8 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     # CMake uses MSVC for the native bridge, while cgo uses MinGW GCC.
-    # Install GCC explicitly and export the MinGW bin directory to later steps.
+    # msys2/setup-msys2 installs MSYS2 into a tool-cache dir (not C:\msys64)
+    # and prepends its mingw64\bin to PATH automatically, so `gcc` resolves.
     - name: Setup MinGW (Windows)
       if: matrix.os == 'windows-latest'
       uses: msys2/setup-msys2@v2
@@ -49,17 +50,9 @@ jobs:
 
     - name: Verify MinGW GCC (Windows)
       if: matrix.os == 'windows-latest'
-      shell: pwsh
+      shell: bash
       run: |
-        $mingwBin = 'C:\msys64\mingw64\bin'
-        $gcc = Join-Path $mingwBin 'gcc.exe'
-        if (-not (Test-Path $gcc)) {
-          Write-Host 'Installed MSYS2 files:'
-          Get-ChildItem 'C:\msys64' -Recurse -Filter gcc.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
-          throw "MinGW GCC was not installed at $gcc"
-        }
-        Add-Content -Path $env:GITHUB_PATH -Value $mingwBin
-        & $gcc --version
+        gcc --version
 
     - name: Build bridge library
       run: |
