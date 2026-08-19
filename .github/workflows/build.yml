@@ -186,7 +186,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       env:
         CGO_ENABLED: 1
-        CC: C:\msys64\mingw64\bin\gcc.exe
+        CC: gcc
         GOCACHE: ${{ runner.temp }}/gocache
       run: |
         # Add DLL directories to PATH
@@ -264,7 +264,7 @@ jobs:
       working-directory: ./example/command-line
       env:
         CGO_ENABLED: 1
-        CC: ${{ matrix.os == 'windows-latest' && 'C:\msys64\mingw64\bin\gcc.exe' || '' }}
+        CC: ${{ matrix.os == 'windows-latest' && 'gcc' || '' }}
         GOCACHE: ${{ runner.temp }}/gocache
       run: |
         echo "Testing command-line example with local code..."
@@ -276,7 +276,7 @@ jobs:
       working-directory: ./example/web
       env:
         CGO_ENABLED: 1
-        CC: ${{ matrix.os == 'windows-latest' && 'C:\msys64\mingw64\bin\gcc.exe' || '' }}
+        CC: ${{ matrix.os == 'windows-latest' && 'gcc' || '' }}
         GOCACHE: ${{ runner.temp }}/gocache
       run: |
         echo "Testing web example with local code..."
