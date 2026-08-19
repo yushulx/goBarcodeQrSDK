@@ -132,14 +132,28 @@ jobs:
       run: |
         make -j$(sysctl -n hw.ncpu)
 
+    # Combine both architecture builds into a universal binary, but only
+    # when the x86_64 build actually produced a distinct architecture.
+    # On arm64 runners with newer CMake/Xcode, "x86_64" can resolve back
+    # to arm64, in which case both inputs to lipo are identical arm64
+    # binaries and lipo fails.
     - name: Create universal bridge binary (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        lipo -create \
-          libbridge_arm64.dylib \
-          dcv/lib/mac/libbridge.dylib \
-          -output dcv/lib/mac/libbridge.dylib
-        lipo -info dcv/lib/mac/libbridge.dylib
+        ARCH1=$(lipo -archs libbridge_arm64.dylib)
+        ARCH2=$(lipo -archs dcv/lib/mac/libbridge.dylib)
+        echo "ARM64 build: $ARCH1"
+        echo "x86_64 build: $ARCH2"
+        if [ "$ARCH1" = "$ARCH2" ]; then
+          echo "Both builds are $ARCH1 - skipping lipo, keeping single-arch binary"
+          lipo -info dcv/lib/mac/libbridge.dylib || true
+        else
+          lipo -create \
+            libbridge_arm64.dylib \
+            dcv/lib/mac/libbridge.dylib \
+            -output dcv/lib/mac/libbridge.dylib
+          lipo -info dcv/lib/mac/libbridge.dylib
+        fi
         rm -f libbridge_arm64.dylib
 
     # Make the MSVC import library available to the Go linker on Windows.
