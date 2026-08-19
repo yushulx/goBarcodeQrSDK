@@ -77,7 +77,7 @@ jobs:
     - name: Run tests
       env:
         CGO_ENABLED: 1
-        CC: C:\msys64\mingw64\bin\gcc.exe
+        CC: ${{ matrix.os == 'windows-latest' && 'C:\msys64\mingw64\bin\gcc.exe' || '' }}
         GOCACHE: ${{ runner.temp }}/gocache
       run: |
         go mod tidy
@@ -86,7 +86,7 @@ jobs:
     - name: Verify examples compile
       env:
         CGO_ENABLED: 1
-        CC: C:\msys64\mingw64\bin\gcc.exe
+        CC: ${{ matrix.os == 'windows-latest' && 'C:\msys64\mingw64\bin\gcc.exe' || '' }}
         GOCACHE: ${{ runner.temp }}/gocache
       run: |
         cd example/command-line
