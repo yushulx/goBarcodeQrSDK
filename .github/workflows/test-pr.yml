@@ -50,10 +50,10 @@ jobs:
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           mkdir build
           cd build
-          cmake .. -G "Visual Studio 17 2022" -A x64
+          cmake .. -G "Visual Studio 18 2026" -A x64
           cmake --build . --config Release
           cd ..
-          copy build\Release\bridge.lib dcv\lib\win\bridge.lib
+          cp build/Release/bridge.lib dcv/lib/win/bridge.lib
         elif [ "${{ matrix.os }}" = "macos-latest" ]; then
           cd build_arm64
           cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64
