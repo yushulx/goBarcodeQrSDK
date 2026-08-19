@@ -28,7 +28,7 @@ jobs:
             platform: windows
             lib_path: dcv/lib/win
             bridge_output: dcv/lib/win/Release/bridge.dll
-            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator: "Visual Studio 18 2026"
             archive_name: "windows-x64"
 
     runs-on: ${{ matrix.os }}
