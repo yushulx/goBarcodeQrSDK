@@ -119,7 +119,7 @@ sudo ./run_mac_test.sh
 		# Find the path to the shared libraries
 		$PACKAGE_PATH = Get-ChildItem -Path "$GOPATH\pkg\mod\github.com\yushulx" -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 		Write-Host "PACKAGE_PATH set to $PACKAGE_PATH"
-		$LIBRARY_PATH = "$PACKAGE_PATH\lib\windows"
+		$LIBRARY_PATH = "$PACKAGE_PATH\dcv\lib\win"
 
 		Write-Host "LIBRARY_PATH set to $LIBRARY_PATH"
 		# Update PATH to include the assembly path
@@ -146,7 +146,7 @@ sudo ./run_mac_test.sh
 		# Find the path to the shared libraries
 		PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1 -type d | sort -r | head -n 1)
 		echo "PACKAGE_PATH set to $PACKAGE_PATH"
-		LIBRARY_PATH="$PACKAGE_PATH/lib/linux"
+		LIBRARY_PATH="$PACKAGE_PATH/dcv/lib/linux"
 
 		echo "LIBRARY_PATH set to $LIBRARY_PATH"
 
@@ -173,7 +173,7 @@ sudo ./run_mac_test.sh
 		# Find the path to the shared libraries
 		PACKAGE_PATH=$(find "$GOPATH/pkg/mod/github.com/yushulx" -mindepth 1 -maxdepth 1 -type d | sort -r | head -n 1)
 		echo "PACKAGE_PATH set to $PACKAGE_PATH"
-		RPATH="$PACKAGE_PATH/lib/mac"
+		RPATH="$PACKAGE_PATH/dcv/lib/mac"
 
 		echo "LIBRARY_PATH set to $LIBRARY_PATH"
 

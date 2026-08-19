@@ -39,9 +39,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.24'
 
     - name: Install dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -58,27 +58,62 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v2
 
+    # cgo needs a GCC-compatible compiler on Windows.
+    - name: Setup MinGW (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-gcc
+
     - name: Build bridge library
       run: |
-        mkdir build
-        cd build
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          mkdir build
+          cd build
           cmake .. -G "Visual Studio 17 2022" -A x64
           cmake --build . --config Release
+          cd ..
+          copy build\Release\bridge.lib dcv\lib\win\bridge.lib
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          # Universal binary (arm64 + x86_64)
+          mkdir -p build_arm64 build_x86_64
+          cd build_arm64
+          cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64
+          make
+          cd ..
+          cp dcv/lib/mac/libbridge.dylib libbridge_arm64.dylib
+          cd build_x86_64
+          cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64
+          make
+          cd ..
+          lipo -create libbridge_arm64.dylib dcv/lib/mac/libbridge.dylib -output dcv/lib/mac/libbridge.dylib
+          rm -f libbridge_arm64.dylib
         else
-          cmake ..
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
           make
         fi
       shell: bash
 
     - name: Build examples
       working-directory: ./example/command-line
+      env:
+        CGO_ENABLED: 1
+        CC: C:\msys64\mingw64\bin\gcc.exe
+        GOCACHE: ${{ runner.temp }}/gocache
       run: |
         go mod tidy
         go build -o barcode-reader-${{ matrix.platform }} .
 
     - name: Build web example
       working-directory: ./example/web
+      env:
+        CGO_ENABLED: 1
+        CC: C:\msys64\mingw64\bin\gcc.exe
+        GOCACHE: ${{ runner.temp }}/gocache
       run: |
         go mod tidy
         go build -o web-server-${{ matrix.platform }} .
@@ -89,7 +124,13 @@ jobs:
         # Copy bridge library
         cp ${{ matrix.lib_path }}/${{ matrix.lib_name }} release/${{ matrix.artifact_name }}/
         # Copy Dynamsoft libraries
-        cp -r ${{ matrix.lib_path }}/../../../dcv/lib/${{ matrix.platform == 'macos' && 'mac' || matrix.platform }}/* release/${{ matrix.artifact_name }}/ || true
+        if [ "${{ matrix.platform }}" = "macos" ]; then
+          cp -r dcv/lib/mac/* release/${{ matrix.artifact_name }}/ || true
+        elif [ "${{ matrix.platform }}" = "linux" ]; then
+          cp -r dcv/lib/linux/* release/${{ matrix.artifact_name }}/ || true
+        else
+          cp -r dcv/lib/win/* release/${{ matrix.artifact_name }}/ || true
+        fi
         # Copy examples
         cp example/command-line/barcode-reader-${{ matrix.platform }}* release/${{ matrix.artifact_name }}/ 2>/dev/null || true
         cp example/web/web-server-${{ matrix.platform }}* release/${{ matrix.artifact_name }}/ 2>/dev/null || true

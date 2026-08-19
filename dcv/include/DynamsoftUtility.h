@@ -13,12 +13,95 @@
 #endif
 
 #include"DynamsoftCaptureVisionRouter.h"
-#define DISA_VERSION "2.2.10.6032"
+#define DISA_VERSION "2.6.10.8373"
 
 #ifdef __cplusplus
 
 using namespace dynamsoft::basic_structures;
 using namespace dynamsoft::cvr;
+/**
+ * @brief Strategy for the layout engine to organize quadrilaterals.
+ */
+typedef enum LayoutPattern {
+	LP_UNKNOWN = 0,    ///< Algorithm automatically detects the best layout pattern.
+	LP_LINES = 1,    ///< Elements are organized into sequential lines (rows or columns).
+	LP_MATRIX = 2     ///< Elements are organized into a strict grid/matrix structure.
+} LayoutPattern;
+
+/**
+ * @brief Origin of the element.
+ */
+typedef enum LayoutElementSource {
+	LES_NONE = 0,  ///< No element exists at this logical grid position (used for alignment in non-uniform rows).
+	LES_INPUT = 1,  ///< Element is provided from the original input array.
+	LES_INFERRED = 2   ///< Element is reconstructed or filled in by the algorithm.
+} LayoutElementSource;
+
+/**
+ * @brief Configuration for a specific orientation axis.
+ * Layout analysis involves two axes:
+ * - Axis 0 (Primary): The direction of flow within a line.
+ * - Axis 1 (Secondary): The direction in which lines are stacked.
+ */
+typedef struct LayoutAxis {
+	int elementCount = -1;     ///< Expected number of elements along this axis. Use -1 for auto-detection.
+	bool isStaggered = false;     ///< Whether the layout uses an offset/staggered (brick-like) pattern.
+	int angle = -1;            ///< Target angle [0, 180]. Use -1 for auto-detection.
+	bool isEqualSpacing = false;  ///< Force equal gaps between elements. When false, spacing is ignored.
+	int spacing = -1;          ///< Spacing between elements along this axis. Use -1 for auto-detection.
+	///<   In MU_PIXEL mode: absolute pixel count.
+	///<   In MU_PERCENTAGE mode: percentage of the element's characteristic size
+	///<   (e.g. 200 = 200% = twice the reference width).
+	MeasureUnit spacingUnit = MU_PIXEL; ///< Interpretation mode for the spacing value.
+	char reserved[32] = {};    ///< Reserved for future extension. Must be set to zero.
+} LayoutAxis;
+
+/**
+ * @brief Input parameters to guide the layout analysis.
+ */
+typedef struct LayoutAnalysisParameter {
+	LayoutPattern pattern = LP_UNKNOWN;  ///< Desired layout pattern. Use LP_UNKNOWN for auto-detection.
+	LayoutAxis axes[2];     ///< Configuration for Primary (0) and Secondary (1) axes.
+	int inputImageWidth = 0;    ///< Width of the source image in pixels. When provided, the engine uses
+	///< this as a boundary reference to prevent inferred quads from
+	///< extending beyond the image bounds. Default: 0 (no boundary check).
+	int inputImageHeight = 0;   ///< Height of the source image in pixels. When provided, the engine uses
+	///< this as a boundary reference to prevent inferred quads from
+	///< extending beyond the image bounds. Default: 0 (no boundary check).
+	char reserved[32] = {};      ///< Reserved for future extension. Must be set to zero.
+} LayoutAnalysisParameter;
+
+/**
+ * @brief Represents an element in the layout.
+ * Combines geometry with its origin information.
+ */
+typedef struct LayoutElement {
+	dynamsoft::basic_structures::CQuadrilateral quad;        ///< Geometric coordinates of the element.
+	LayoutElementSource source = LES_NONE; ///< Origin of this element (Input / Inferred / None).
+	char reserved[32] = {};          ///< Reserved for future extension. Must be set to zero.
+} LayoutElement;
+
+/**
+ * @brief Comprehensive results of the layout analysis.
+ * Managed by the engine and must be explicitly released via CLayoutAnalyzer::ReleaseResult().
+ */
+typedef struct LayoutAnalysisResult {
+	dynamsoft::basic_structures::CQuadrilateral* inferredQuads; ///< Array of newly generated (inferred) quads.
+	int inferredQuadCount;         ///< Total number of inferred quadrilaterals.
+
+	/**
+	 * @brief A 2D array (grid) of layout elements [rowCount][colCount].
+	 * In LP_LINES mode, rows may have varying physical lengths. Rows shorter than
+	 * colCount are padded with elements whose source is set to LES_NONE.
+	 */
+	LayoutElement** elements;
+	int rowCount;  ///< Number of rows (Primary Axis direction).
+	int colCount;  ///< Maximum number of columns across all rows (Secondary Axis direction).
+
+	LayoutPattern detectedPattern; ///< The actual layout pattern identified by the engine.
+	int errorCode;                 ///< 0 for success, non-zero for error.
+	char reserved[32];             ///< Reserved for future extension.
+} LayoutAnalysisResult;
 
 namespace dynamsoft {
 	namespace utility {
@@ -206,6 +289,26 @@ namespace dynamsoft {
 
 			virtual const char* GetEncryptedString();
 
+			/**
+			* Sets the cross-verification criteria for specified result item types.
+			*
+			* This function allows customization of the multi-frame verification parameters,
+			* controlling how many frames are analyzed and how many consistent results are required.
+			*
+			* @param [in] resultItemTypes The result item types to apply the criteria to (can be a combination of CapturedResultItemType values).
+			* @param [in] frameWindow The number of frames to consider for cross-verification.
+			* @param [in] minConsistentFrames The minimum number of frames that must contain consistent results for verification to succeed.
+			*/
+			void SetResultCrossVerificationCriteria(int resultItemTypes, int frameWindow, int minConsistentFrames);
+
+			/**
+			* Gets the cross-verification criteria for specified result item types.
+			*
+			* @param [in] resultItemType The result item type to query (CapturedResultItemType value).
+			* @param [out] frameWindow Returns the frame window size currently configured for this result type.
+			* @param [out] minConsistentFrames Returns the minimum consistent frames currently configured for this result type.
+			*/
+			void GetResultCrossVerificationCriteria(CapturedResultItemType resultItemType, int& frameWindow, int& minConsistentFrames);
 		};
 
 		/**
@@ -219,7 +322,7 @@ namespace dynamsoft {
 		private:
 			class CProactiveImageSourceAdapterInner;
 			CProactiveImageSourceAdapter(const CProactiveImageSourceAdapter&);
-			CProactiveImageSourceAdapter& operator=(const CProactiveImageSourceAdapter&);
+			CProactiveImageSourceAdapter& operator=(const CProactiveImageSourceAdapter&) = delete;
 			CProactiveImageSourceAdapterInner* m_inner;
 
 			void FetchImageToBuffer();
@@ -581,23 +684,64 @@ namespace dynamsoft {
 			 */
 			CImageData* ConvertToGray(const CImageData* pImageData, float R = 0.3f, float G = 0.59f, float B = 0.11f);
 			/**
-			 * Converts the grayscale image to binary image using a global threshold.
-			 * @param pImageData: Input image in grayscale.
-			 * @param threshold: Global threshold for binarization(default is -1, automatic calculate the threshold).
-			 * @param invert: If true, invert the binary image (black becomes white and white becomes black).
-			 * @return: Returns a pointer to a CImageData object after binarization.
+			 * Converts an input image to a binary image using a global threshold.
+			 * Supports grayscale, color, and binary input images (color images are internally
+			 * converted to grayscale before thresholding).
+			 *
+			 * @param pImageData  Input image (grayscale, color, or binary).
+			 * @param threshold   Global threshold for binarization. If set to -1 (default),
+			 *                    the function will automatically compute an optimal threshold.
+			 * @param invert      If true, invert the output binary image.
+			 *
+			 * @return Pointer to a CImageData object representing the binarized image.
 			 */
 			CImageData* ConvertToBinaryGlobal(const CImageData* pImageData, int threshold = -1, bool invert = false);
 			/**
-			 * Converts the grayscale image to binary image using local (adaptive) binarization.
-			 * @param pImageData: Input image in grayscale.
-			 * @param blockSize: Size of the block for local binarization(default is 0).
-			 * @param compensation: Adjustment value to modify the threshold (default is 0).
-			 * @param invert: If true, invert the binary image (black becomes white and white becomes black).
-			 * @return: Image after binarization.
+			 * Converts an input image to a binary image using local (adaptive) thresholding.
+			 * Supports grayscale, color, and binary input images (color images are internally
+			 * converted to grayscale before thresholding).
+			 *
+			 * @param pImageData   Input image (grayscale, color, or binary).
+			 * @param blockSize    Size of the local block used for adaptive thresholding.
+			 *                     If set to 0 (default), a suitable block size will be chosen automatically.
+			 * @param compensation Adjustment value applied to the computed local threshold (default 10).
+			 * @param invert       If true, invert the output binary image.
+			 *
+			 * @return Pointer to a CImageData object representing the locally binarized image.
 			 */
-			CImageData* ConvertToBinaryLocal(const CImageData* pImageData, int blockSize = 0, int compensation = 0, bool invert = false);
+			CImageData* ConvertToBinaryLocal(const CImageData* pImageData, int blockSize = 0, int compensation = 10, bool invert = false);
 
+		};
+
+		/**
+		* @brief High-performance layout analysis engine.
+		* Provides static methods to analyze the spatial distribution of quadrilaterals.
+		*/
+		class UTIL_API CLayoutAnalyzer {
+		public:
+			/**
+			 * @brief Performs layout analysis and allocates a result set.
+			 * @param[in] inputQuads     Array of input quadrilaterals.
+			 * @param[in] inputQuadCount Number of elements in the input array.
+			 * @param[in] pParam         Optional parameters to constrain the analysis.
+			 * @return Pointer to the result set, or nullptr on failure.
+			 * @note Caller MUST release the returned pointer via ReleaseResult().
+			 */
+			static LayoutAnalysisResult* Analyze(
+				const basic_structures::CQuadrilateral inputQuads[],
+				int inputQuadCount,
+				const LayoutAnalysisParameter* pParam = nullptr
+			);
+
+			/**
+			 * @brief Releases the memory associated with a LayoutAnalysisResult.
+			 * @param[in] pResultSet Pointer to the result set to be destroyed. No-op if nullptr.
+			 */
+			static void ReleaseResult(LayoutAnalysisResult* pResultSet);
+
+		private:
+			CLayoutAnalyzer() = delete;
+			~CLayoutAnalyzer() = delete;
 		};
 #pragma pack(pop)
 	}
