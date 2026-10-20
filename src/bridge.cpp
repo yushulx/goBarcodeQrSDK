@@ -162,9 +162,15 @@ extern "C"
                     continue;
 
                 CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
-                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                if (barcodeResult)
                 {
-                    estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                    if (barcodeResult->GetItemsCount() > 0)
+                    {
+                        estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                    }
+                    // The SDK hands out a new reference for every call; release it
+                    // or the router reports leaked results when it is destroyed.
+                    barcodeResult->Release();
                 }
             }
 
@@ -251,6 +257,8 @@ extern "C"
                         }
                     }
                 }
+                if (barcodeResult)
+                    barcodeResult->Release();
             }
 
             captureResultArray->Release();
@@ -362,9 +370,15 @@ extern "C"
                     continue;
 
                 CDecodedBarcodesResult *barcodeResult = pageResult->GetDecodedBarcodesResult();
-                if (barcodeResult && barcodeResult->GetItemsCount() > 0)
+                if (barcodeResult)
                 {
-                    estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                    if (barcodeResult->GetItemsCount() > 0)
+                    {
+                        estimatedBarcodeCount += barcodeResult->GetItemsCount();
+                    }
+                    // The SDK hands out a new reference for every call; release it
+                    // or the router reports leaked results when it is destroyed.
+                    barcodeResult->Release();
                 }
             }
 
@@ -451,6 +465,8 @@ extern "C"
                         }
                     }
                 }
+                if (barcodeResult)
+                    barcodeResult->Release();
             }
 
             captureResultArray->Release();
